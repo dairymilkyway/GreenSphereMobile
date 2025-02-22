@@ -1,3 +1,4 @@
+// filepath: frontend/app/(tabs)/index.tsx
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { Canvas, useFrame } from "@react-three/fiber/native";
@@ -5,6 +6,7 @@ import { OrbitControls, useGLTF, Sphere, Points, PointMaterial } from "@react-th
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import axios from "axios";
+import { router } from 'expo-router';
 import { LinearGradient } from "expo-linear-gradient";
 import { Rating } from "react-native-ratings";
 
@@ -50,25 +52,6 @@ const LandingPage = () => {
     { name: "Prado, Kristine Mae P.", image: require("@/assets/images/km.jpg") },
   ];
 
-  // Testimonials API Fetch
-  const [testimonials, setTestimonials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const response = await axios.get("http://localhost:3001/feedback");
-        setTestimonials(response.data);
-      } catch (err) {
-        setError("Failed to load testimonials.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTestimonials();
-  }, []);
-
   const features = [
     { icon: <MaterialIcons name="local-florist" size={24} color="white" />, title: "Eco-Friendly", desc: "We prioritize sustainability with green energy solutions tailored to meet the needs of modern living." },
     { icon: <MaterialIcons name="lightbulb" size={24} color="white" />, title: "User-Friendly", desc: "Our intuitive and easy-to-use platform makes it simple for anyone to design and apply renewable energy projects." },
@@ -101,14 +84,7 @@ const LandingPage = () => {
     <ScrollView style={styles.container}>
       {/* Hero Section */}
       <LinearGradient colors={["#0e0a36", "#1c1a2e"]} style={styles.heroSection}>
-        <View style={styles.heroContent}>
-          <Text style={styles.heroTitle}>Design Your Sustainable Future with GreenSphere</Text>
-          <Text style={styles.heroSubtitle}>A powerful simulator for designing and applying renewable energy solutions. Start building your greener future today!</Text>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Login")}>
-            <Text style={styles.buttonText}>Get Started for Free</Text>
-          </TouchableOpacity>
-        </View>
-
+        {/* 3D Logo Section */}
         <View style={styles.hero3D}>
           <Canvas style={styles.canvas} camera={{ position: [0, 0, 15] }}>
             <OrbitControls enableZoom={true} />
@@ -120,6 +96,17 @@ const LandingPage = () => {
             <Sun />
             <Stars />
           </Canvas>
+        </View>
+
+        {/* Hero Content Section */}
+        <View style={styles.heroContent}>
+          <Text style={styles.heroTitle}>Design Your Sustainable Future with GreenSphere</Text>
+          <Text style={styles.heroSubtitle}>A powerful simulator for designing and applying renewable energy solutions. Start building your greener future today!</Text>
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={() => router.push('/Signup')}>
+            <Text style={styles.buttonText}>Get Started for Free</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -135,35 +122,6 @@ const LandingPage = () => {
             </View>
           ))}
         </View>
-      </View>
-
-      {/* Testimonials Section */}
-      <View style={styles.testimonialsSection}>
-        <Text style={styles.sectionTitle}>Community Engagement</Text>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-          </View>
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : (
-          <View style={styles.testimonialsGrid}>
-            {testimonials.slice(0, 3).map((testimonial, index) => (
-              <View key={index} style={styles.testimonialCard}>
-                <Image source={{ uri: testimonial.avatar || "/assets/default-avatar.png" }} style={styles.avatar} />
-                <Text style={styles.testimonialText}>"{testimonial.comment}"</Text>
-                <Rating
-                  type="star"
-                  startingValue={testimonial.rating}
-                  imageSize={20}
-                  readonly
-                  style={styles.rating}
-                />
-                <Text style={styles.testimonialName}>- {testimonial.name}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </View>
 
       {/* Developers Section */}
@@ -194,27 +152,27 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     padding: 20,
-    flexDirection: width > 600 ? "row" : "column",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
   heroContent: {
     flex: 1,
-    marginBottom: width > 600 ? 0 : 20,
+    alignItems: "center",
+    marginTop: 20,
   },
   heroTitle: {
     fontSize: width > 600 ? 24 : 20,
     fontWeight: "bold",
     color: "white",
     marginBottom: 10,
-    textAlign: width > 600 ? "left" : "center",
+    textAlign: "center",
   },
   heroSubtitle: {
     fontSize: width > 600 ? 16 : 14,
     color: "white",
     opacity: 0.8,
     marginBottom: 20,
-    textAlign: width > 600 ? "left" : "center",
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#4CAF50",
@@ -275,56 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "white",
     opacity: 0.8,
-    textAlign: "center",
-  },
-  testimonialsSection: {
-    padding: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    color: "red",
-    textAlign: "center",
-  },
-  testimonialsGrid: {
-    flexDirection: width > 600 ? "row" : "column",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  testimonialCard: {
-    width: width > 600 ? width * 0.3 : width * 0.8,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
-    borderRadius: 20,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    position: "absolute",
-    top: -30,
-  },
-  testimonialText: {
-    fontSize: 14,
-    fontStyle: "italic",
-    color: "white",
-    marginTop: 30,
-    textAlign: "center",
-  },
-  rating: {
-    marginTop: 10,
-  },
-  testimonialName: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "white",
-    marginTop: 10,
     textAlign: "center",
   },
   developersSection: {
