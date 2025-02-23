@@ -36,7 +36,7 @@ export default function Login() {
     <LinearGradient colors={['#05002E', '#191540']} style={styles.container}>
       <View style={styles.leftSection}>
         <Image 
-          source={require('@/assets/models/greenspherelogo.glb')}
+          source={require('@/assets/images/greenspherelogo.png')}
           style={styles.logo}
         />
         <View style={styles.formContainer}>

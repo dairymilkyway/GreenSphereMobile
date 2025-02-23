@@ -29,6 +29,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
+          // Hide the bottom navigation on this screen.
+          tabBarStyle: { display: 'none' },
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />

@@ -204,9 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   featuresGrid: {
-    flexDirection: width > 600 ? "row" : "column",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
   },
   featureCard: {
@@ -239,9 +237,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   developersGrid: {
-    flexDirection: width > 600 ? "row" : "column",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
   },
   developerCard: {
