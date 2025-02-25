@@ -10,12 +10,14 @@ const { width } = Dimensions.get('window');
 export default function OtpVerification() {
   const router = useRouter();
   const { email = '' } = useLocalSearchParams();
-
   const [otp, setOtp] = useState(new Array(6).fill(''));
   const [error, setError] = useState('');
   const inputRefs = useRef([]);
   const [resendCooldown, setResendCooldown] = useState(30);
   const [isResending, setIsResending] = useState(false);
+
+  // Hardcoded backend URL
+  const backendUrl = 'http://172.20.10.2:8082';
 
   const maskEmail = (email) => {
     if (!email.includes('@')) return email;
@@ -63,7 +65,7 @@ export default function OtpVerification() {
         setError('Email is missing. Please restart the process.');
         return;
       }
-      const response = await axios.post('http://localhost:8082/verify-otp', { email, otp: enteredOtp });
+      const response = await axios.post(`${backendUrl}/verify-otp`, { email, otp: enteredOtp });
       if (response.status === 200) {
         alert('OTP Verified Successfully!');
         setTimeout(() => router.push('/Login'), 2500);
@@ -76,7 +78,7 @@ export default function OtpVerification() {
   const handleResendOtp = async () => {
     setIsResending(true);
     try {
-      await axios.post('http://localhost:8082/resend-otp', { email });
+      await axios.post(`${backendUrl}/resend-otp`, { email });
       alert('New OTP sent to your email!');
       setResendCooldown(30);
     } catch (error) {
@@ -129,7 +131,7 @@ export default function OtpVerification() {
   );
 }
 
-// ...existing styles...
+// Styles remain unchanged
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0d0935' },
   formContainer: { padding: 20, borderRadius: 16, maxWidth: 400, width: '100%', alignItems: 'center', backgroundColor: '#1a1a3c' },

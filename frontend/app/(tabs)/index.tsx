@@ -1,49 +1,12 @@
-// filepath: frontend/app/(tabs)/index.tsx
-import React, { useRef, useState, useEffect, useMemo } from "react";
-import { useNavigation } from "@react-navigation/native";
-import { Canvas, useFrame } from "@react-three/fiber/native";
-import { OrbitControls, useGLTF, Sphere, Points, PointMaterial } from "@react-three/drei/native";
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Animated, Easing } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import { router } from 'expo-router';
 import { LinearGradient } from "expo-linear-gradient";
-import { Rating } from "react-native-ratings";
 
 const { width, height } = Dimensions.get("window");
 
-// Rotating Logo Component
-const RotatingLogo = ({ scene, position, scale }) => {
-  const logoRef = useRef();
-  useFrame(() => {
-    if (logoRef.current) {
-      logoRef.current.rotation.x = Math.PI / 2;
-    }
-  });
-
-  return <primitive ref={logoRef} object={scene} position={position} scale={scale} />;
-};
-
-// Static Model Component
-const StaticModel = ({ scene, position, scale }) => {
-  return <primitive object={scene} position={position} scale={scale} />;
-};
-
-// Circular Platform for Logo
-const Platform = () => {
-  return (
-    <mesh position={[0, -2.5, 0]}>
-      <cylinderGeometry args={[3, 3, 0.2, 32]} />
-      <meshStandardMaterial color="#649860" />
-    </mesh>
-  );
-};
-
 const LandingPage = () => {
-  const navigation = useNavigation();
-  const { scene: logoScene } = useGLTF(require('../../assets/models/greenspherelogo.glb'));
-  const { scene: textScene } = useGLTF(require('../../assets/models/greenspheretext.glb'));
-
   // Developer Data
   const developers = [
     { name: "Gayapa, Jhon Ludwig C.", image: require("@/assets/images/ludwig.jpg") },
@@ -53,61 +16,118 @@ const LandingPage = () => {
   ];
 
   const features = [
-    { icon: <MaterialIcons name="local-florist" size={24} color="white" />, title: "Eco-Friendly", desc: "We prioritize sustainability with green energy solutions tailored to meet the needs of modern living." },
-    { icon: <MaterialIcons name="lightbulb" size={24} color="white" />, title: "User-Friendly", desc: "Our intuitive and easy-to-use platform makes it simple for anyone to design and apply renewable energy projects." },
-    { icon: <MaterialCommunityIcons name="verified" size={24} color="white" />, title: "Reliable", desc: "We provide well-tested, scientifically backed solutions that ensure efficiency and long-term performance." },
+    { 
+      icon: <MaterialIcons name="local-florist" size={24} color="white" />, 
+      title: "Eco-Friendly", 
+      desc: "We prioritize sustainability with green energy solutions tailored to meet the needs of modern living." 
+    },
+    { 
+      icon: <MaterialIcons name="lightbulb" size={24} color="white" />, 
+      title: "User-Friendly", 
+      desc: "Our intuitive and easy-to-use platform makes it simple for anyone to design and apply renewable energy projects." 
+    },
+    {
+      icon: (
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="check-bold" size={24} color="white" />
+        </View>
+      ),
+      title: "Reliable",
+      desc: "We provide well-tested, scientifically backed solutions that ensure efficiency and long-term performance."
+    },
   ];
 
-  const Stars = () => {
-    const starPositions = useMemo(() => {
-      const positions = [];
-      for (let i = 0; i < 500; i++) {
-        positions.push((Math.random() - 0.5) * 20, Math.random() * 10, (Math.random() - 0.5) * 20);
-      }
-      return new Float32Array(positions);
-    }, []);
+  // Animation Values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-    return (
-      <Points positions={starPositions}>
-        <PointMaterial size={0.05} color="white" />
-      </Points>
-    );
-  };
+  // Spinning Animation for Logo
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
-  const Sun = () => (
-    <Sphere args={[0.7, 32, 32]} position={[4, 3, -5]}>
-      <meshStandardMaterial emissive="yellow" emissiveIntensity={2} color="yellow" />
-    </Sphere>
-  );
+  useEffect(() => {
+    // Fade-in and scale-up animation for the hero section
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Continuous spinning animation for the logo (coin flip effect)
+    Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 3000, // Duration of one full spin (3 seconds)
+        easing: Easing.linear, // Linear easing for smooth rotation
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [fadeAnim, scaleAnim, spinAnim]);
+
+  // Interpolate spinAnim for 3D coin flip effect
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ["0deg", "180deg", "360deg"], // Full 360-degree flip
+  });
+
+  const scale = spinAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0.7, 1], // Scale down during the flip for perspective
+  });
 
   return (
     <ScrollView style={styles.container}>
       {/* Hero Section */}
       <LinearGradient colors={["#0e0a36", "#1c1a2e"]} style={styles.heroSection}>
-        {/* 3D Logo Section */}
-        <View style={styles.hero3D}>
-          <Canvas style={styles.canvas} camera={{ position: [0, 0, 15] }}>
-            <OrbitControls enableZoom={true} />
-            <ambientLight intensity={1.5} />
-            <directionalLight position={[2, 2, 2]} intensity={1} />
-            <Platform />
-            <RotatingLogo scene={logoScene} position={[0, 1.7, 0.2]} scale={[1, 1, 1]} />
-            <StaticModel scene={textScene} position={[0, -1.1, 0]} scale={[0.1, 0.1, 0.1]} />
-            <Sun />
-            <Stars />
-          </Canvas>
-        </View>
-
+        {/* Static Logo Section */}
+        <Animated.View 
+          style={[
+            styles.hero3D,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <Animated.Image 
+            source={require('@/assets/images/greenspherelogo.png')}
+            style={[
+              styles.logo,
+              {
+                transform: [
+                  { rotateY: spin }, // Apply 3D rotation
+                  { perspective: 1000 }, // Add perspective for depth
+                  { scale }, // Apply scaling for perspective effect
+                ],
+              },
+            ]}
+          />
+        </Animated.View>
         {/* Hero Content Section */}
-        <View style={styles.heroContent}>
+        <Animated.View 
+          style={[
+            styles.heroContent,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+            },
+          ]}
+        >
           <Text style={styles.heroTitle}>Design Your Sustainable Future with GreenSphere</Text>
           <Text style={styles.heroSubtitle}>A powerful simulator for designing and applying renewable energy solutions. Start building your greener future today!</Text>
           <TouchableOpacity 
             style={styles.button} 
-            onPress={() => router.push('/Signup')}>
+            onPress={() => router.push('/Signup')}
+          >
             <Text style={styles.buttonText}>Get Started for Free</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </LinearGradient>
 
       {/* Features Section */}
@@ -115,11 +135,20 @@ const LandingPage = () => {
         <Text style={styles.sectionTitle}>Why Choose Greensphere?</Text>
         <View style={styles.featuresGrid}>
           {features.map((feature, index) => (
-            <View key={index} style={styles.featureCard}>
+            <Animated.View 
+              key={index} 
+              style={[
+                styles.featureCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+                },
+              ]}
+            >
               <View style={styles.featureIcon}>{feature.icon}</View>
               <Text style={styles.featureTitle}>{feature.title}</Text>
               <Text style={styles.featureDesc}>{feature.desc}</Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
       </View>
@@ -129,10 +158,19 @@ const LandingPage = () => {
         <Text style={styles.sectionTitle}>Developers of the System</Text>
         <View style={styles.developersGrid}>
           {developers.map((dev, index) => (
-            <View key={index} style={styles.developerCard}>
+            <Animated.View 
+              key={index} 
+              style={[
+                styles.developerCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+                },
+              ]}
+            >
               <Image source={dev.image} style={styles.developerImage} />
               <Text style={styles.developerName}>{dev.name}</Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
       </View>
@@ -189,9 +227,14 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 10,
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  canvas: {
-    flex: 1,
+  logo: {
+    width: 150,
+    height: 150,
+    resizeMode: "contain",
+    backfaceVisibility: "hidden", // Ensures the back of the image is not visible during the flip
   },
   featuresSection: {
     padding: 20,
@@ -268,6 +311,14 @@ const styles = StyleSheet.create({
   footerText: {
     color: "white",
     fontSize: 12,
+  },
+  iconContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

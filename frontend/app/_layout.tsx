@@ -1,4 +1,3 @@
-// filepath: frontend/app/_layout.tsx
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -40,6 +39,10 @@ export default function RootLayout() {
           presentation: 'modal' 
         }} />
         <Stack.Screen name="OtpVerification" options={{ 
+          headerShown: false,
+          presentation: 'modal' 
+        }} />
+        <Stack.Screen name="Home" options={{ 
           headerShown: false,
           presentation: 'modal' 
         }} />

@@ -11,16 +11,13 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Hardcoded backend URL
+  const apiUrl = 'http://172.20.10.2:8082/login';
+
   const handleLogin = async () => {
     try {
-      const loginResponse = await axios.post(
-        'http://localhost:8082/login',
-        { email, password },
-        { withCredentials: true }
-      );
-  
+      const loginResponse = await axios.post(apiUrl, { email, password }, { withCredentials: true });
       console.log('Login response:', loginResponse.data); // Debugging
-  
       if (loginResponse.data.message === 'Success') {
         router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/home');
       } else if (loginResponse.data.redirect === '/verify-otp') {
@@ -30,8 +27,7 @@ export default function Login() {
       console.error('Login error:', error.response?.data || error.message);
     }
   };
-  
-  
+
   return (
     <LinearGradient colors={['#05002E', '#191540']} style={styles.container}>
       <View style={styles.leftSection}>

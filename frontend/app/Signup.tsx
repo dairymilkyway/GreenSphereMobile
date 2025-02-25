@@ -14,7 +14,10 @@ export default function Signup() {
 
   const handleSignup = async () => {
     try {
-      const result = await axios.post('http://localhost:8082/signup', { name, email, password }, { withCredentials: true });
+      // Use the hardcoded backend URL
+      const apiUrl = 'http://172.20.10.2:8082/signup';
+      const result = await axios.post(apiUrl, { name, email, password }, { withCredentials: true });
+
       if (result.status === 201) {
         console.log('User created successfully');
         router.push('/Login');
