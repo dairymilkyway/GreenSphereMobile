@@ -12,14 +12,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   // Hardcoded backend URL
-  const apiUrl = 'http://172.20.10.2:8082/login';
+  const apiUrl = 'http://192.168.163.225:8082/login';
 
   const handleLogin = async () => {
     try {
       const loginResponse = await axios.post(apiUrl, { email, password }, { withCredentials: true });
       console.log('Login response:', loginResponse.data); // Debugging
       if (loginResponse.data.message === 'Success') {
-        router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/home');
+        router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/Home');
       } else if (loginResponse.data.redirect === '/verify-otp') {
         router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
       }
