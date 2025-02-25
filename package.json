@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "react-native-network-info": "^5.2.1"
+    "react-native-dropdown-picker": "^5.4.6",
+    "react-native-element-dropdown": "^2.12.4",
+    "react-native-network-info": "^5.2.1",
+    "react-native-ratings": "^8.1.0"
   }
 }

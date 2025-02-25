@@ -42,10 +42,6 @@ export default function RootLayout() {
           headerShown: false,
           presentation: 'modal' 
         }} />
-        <Stack.Screen name="Home" options={{ 
-          headerShown: false,
-          presentation: 'modal' 
-        }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

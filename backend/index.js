@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const UserModel = require("./model/User");
+const FeedbackModel = require("./model/Feedback");
 const { verifyUser } = require("./middleware/auth");
 const sendOtpEmail = require('./mailer');
 const generateOtp = require('./otp');
@@ -95,6 +96,34 @@ app.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+// Feedback functionality
+app.post("/feedback", async (req, res) => {
+  try {
+      if (!req.session.user) {
+          return res.status(401).json("Not Authenticated");
+      }
+
+      const { rating, comment } = req.body;
+      const feedback = new FeedbackModel({
+          name: req.session.user.name,
+          rating,
+          comment
+      });
+      const savedFeedback = await feedback.save();
+      res.status(201).json(savedFeedback);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/feedback", async (req, res) => {
+  try {
+      const feedbacks = await FeedbackModel.find();
+      res.status(200).json(feedbacks);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
   }
 });
 
