@@ -30,18 +30,11 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="Login" options={{ 
-          headerShown: false,
-          presentation: 'modal' 
-        }} />
-        <Stack.Screen name="Signup" options={{ 
-          headerShown: false,
-          presentation: 'modal' 
-        }} />
-        <Stack.Screen name="OtpVerification" options={{ 
-          headerShown: false,
-          presentation: 'modal' 
-        }} />
+        <Stack.Screen name="Login"/>
+        <Stack.Screen name="Signup" />
+        <Stack.Screen name="OtpVerification" />
+        <Stack.Screen name="RenewableModels" />
+        <Stack.Screen name="RenewableInfrastructures" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
