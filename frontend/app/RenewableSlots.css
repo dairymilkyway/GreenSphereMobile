@@ -1,0 +1,112 @@
+.hotbar-container {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.recommendation-text {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.highly-recommended {
+  color: #4caf50; /* Green for highly recommended */
+  font-weight: bolder;
+}
+
+.least-recommended {
+  color: #f44336; /* Red for least recommended */
+  font-weight: bolder;  
+}
+
+.hotbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #1e1942;
+}
+
+.slot {
+  width: 60px;
+  height: 60px;
+  margin: 5px;
+  background-color: #555;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #333;
+  border-radius: 5px;
+  position: relative;
+  cursor: pointer;
+}
+
+.slot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 70px;
+  background-color: #1e1942;
+  color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  white-space: nowrap;
+  z-index: 100;
+  text-align: center;
+}
+
+.tooltip strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.tooltip div {
+  font-size: 12px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.modal h2 {
+  margin-bottom: 10px;
+}
+
+.modal button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background: #1e1942;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
