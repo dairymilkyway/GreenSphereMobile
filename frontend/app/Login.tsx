@@ -12,8 +12,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   // Hardcoded backend URL
-  const apiUrl = 'http://192.168.163.225:8082/login';
-
+  // const apiUrl = 'http://192.168.163.225:8082/login';
+  const apiUrl = 'http://192.168.0.251:8082/login';
   const handleLogin = async () => {
     try {
       const loginResponse = await axios.post(apiUrl, { email, password }, { withCredentials: true });

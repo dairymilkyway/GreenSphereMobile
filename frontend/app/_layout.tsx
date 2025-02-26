@@ -33,7 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="Login"/>
         <Stack.Screen name="Signup" />
         <Stack.Screen name="OtpVerification" />
-        <Stack.Screen name="RenewableModels" />
+        <Stack.Screen name="RenewableModel" />
         <Stack.Screen name="RenewableInfrastructures" />
         <Stack.Screen name="+not-found" />
       </Stack>
