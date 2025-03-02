@@ -12,9 +12,78 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
 
 const RenewableSlots = ({ infrastructure, roofType }) => {
-  const [hoveredSlot, setHoveredSlot] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null); // Stores the selected slot
+  const [slotModalVisible, setSlotModalVisible] = useState(false); // Controls modal visibility
+  const [isMarkedWithX, setIsMarkedWithX] = useState(false); // Tracks if the selected slot is marked with "X"
 
-
+  const explanations = {
+    "Single-Family with Gable": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.nrel.gov/news/video/hydropower-energy-basics-text.html" target="_blank">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Single-Family with Flat": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.nrel.gov/news/video/hydropower-energy-basics-text.html" target="_blank">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Single-Family with Shed": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.nrel.gov/news/video/hydropower-energy-basics-text.html" target="_blank">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Single-Family with Butterfly": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.nrel.gov/news/video/hydropower-energy-basics-text.html" target="_blank">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Cottages": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "TownHouse": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/">Learn more</a>`,
+  
+      "Vertical Farming": `These structures typically lack the space and structural capacity to support vertical farming systems. The energy demands for lighting and climate control are also high, making it impractical for residential use without significant modifications. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Mobile Home": {
+      "Heat Pump": `Geothermal heat pumps are not compatible with mobile homes because they require underground loops for heat exchange, but mobile homes typically lack the necessary land space for installation. Additionally, mobile homes have limited insulation and ductwork, making geothermal systems less efficient. Lastly, the installation cost and structural requirements of geothermal heat pumps are impractical for most mobile home setups. 
+      <a href="https://mobilehomeideas.com/a-comprehensive-guide-to-mobile-home-heat-pumps/">Learn more</a>`,
+  
+      "Solar Roof Tiles": `Mobile homes often have limited roof space and are frequently relocated, making the installation of solar roof tiles impractical. The structural integrity of mobile home roofs may also not support the weight of solar tiles. 
+      <a href="https://www.intermtnwindandsolar.com/can-you-use-solar-power-for-a-mobile-home/">Learn more</a>`,
+  
+      "Vertical Farming": `Mobile homes have limited space and are not designed to support the weight or energy requirements of vertical farming systems. The mobility of these homes also conflicts with the permanent infrastructure needed for vertical farming. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/" target="_blank">Learn more</a>`,
+    },
+    "Apartments": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/">Learn more</a>`,
+  
+      "Solar Roof Tiles": `In multi-unit buildings, the roof space is often shared or limited, making it difficult to install solar roof tiles for individual units. Additionally, the orientation and shading of large buildings can reduce the efficiency of solar tiles. 
+      <a href="https://build-construct.com/building/solar-roof-tiles/">Learn more</a>`,
+    },
+    "Office Building": {
+      "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
+      <a href="https://www.waterpowermagazine.com/analysis/pico-practice-prospects-for-rural-hydro/">Learn more</a>`,
+  
+      "Solar Roof Tiles": `In multi-unit buildings, the roof space is often shared or limited, making it difficult to install solar roof tiles for individual units. Additionally, the orientation and shading of large buildings can reduce the efficiency of solar tiles. 
+      <a href="https://build-construct.com/building/solar-roof-tiles/">Learn more</a>`,
+    },
+  };
   const renewableEnergyRankings = {
     "Single-Family with Gable": [
       { type: 'Solar Energy', name: 'Solar Roof Tiles', image: require('../assets/images/SolarRoofTiles.png') },
@@ -122,59 +191,109 @@ const RenewableSlots = ({ infrastructure, roofType }) => {
    renewableEnergyRankings[infrastructure] ||
    [];
 
- return (
-   <View style={styles.renewableContainer}>
-     {/* Horizontal Scrollable Area */}
-     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-       {/* Highly Recommended Label */}
-       <View style={[styles.slot, styles.recommendationLabel, styles.highlyRecommended]}>
-         <Text style={styles.labelText}>Highly Recommended</Text>
-       </View>
+   return (
+    <>
+      {/* Horizontal Scrollable Area */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {/* Highly Recommended Label */}
+        <View style={[styles.slot, styles.recommendationLabel, styles.highlyRecommended]}>
+          <Text style={styles.labelText}>Highly Recommended</Text>
+        </View>
 
-       {/* Renewable Energy Slots */}
-       {renewableEnergySlots.map((slot, index) => {
-         const isLastTwo = index >= renewableEnergySlots.length - 2;
-         const isHeatPumpUnderMobileHome =
-           slot.name === 'Heat Pump' && infrastructure === 'Mobile Home';
+        {/* Renewable Energy Slots */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {renewableEnergySlots.map((slot, index) => {
+            const isLastTwo = index >= renewableEnergySlots.length - 2;
+            const isHeatPumpUnderMobileHome =
+              slot.name === 'Heat Pump' && infrastructure === 'Mobile Home';
 
-         return (
-           <TouchableOpacity
-             key={index}
-             style={[
-               styles.slot,
-               hoveredSlot === index && styles.hoveredSlot,
-               isLastTwo && styles.leastRecommendedSlot,
-             ]}
-             onPress={() => setHoveredSlot(index)}
-           >
-             {/* Slot Content */}
-             <Image source={slot.image} style={styles.slotImage} />
-             <Text style={styles.slotName}>{slot.name}</Text>
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  setSelectedSlot(slot); // Set the clicked slot data
+                  setIsMarkedWithX(isLastTwo || isHeatPumpUnderMobileHome); // Track if the slot is marked with "X"
+                  setSlotModalVisible(true); // Open the modal
+                }}
+                style={[
+                  styles.slot,
+                  (isLastTwo || isHeatPumpUnderMobileHome) ? styles.leastRecommendedSlot : null,
+                ]}
+              >
+                {/* Slot Content */}
+                <Image source={slot.image} style={styles.slotImage} />
+                <Text style={styles.slotName}>{slot.name}</Text>
 
-             {/* Apply "X" for last two slots OR if it's a Heat Pump under a Mobile Home */}
-             {(isLastTwo || isHeatPumpUnderMobileHome) && (
-               <Text style={styles.xMark}>X</Text>
-             )}
+                {/* Apply "X" for last two slots OR if it's a Heat Pump under a Mobile Home */}
+                {(isLastTwo || isHeatPumpUnderMobileHome) && (
+                  <Text style={styles.xMark}>X</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-             {/* Hover Tooltip */}
-             {hoveredSlot === index && (
-               <View style={styles.tooltip}>
-                 <Text style={styles.tooltipText}>{slot.type}</Text>
-                 <Text style={styles.tooltipText}>{slot.name}</Text>
-               </View>
-             )}
-           </TouchableOpacity>
-         );
-       })}
+        {/* Least Recommended Label */}
+        <View style={[styles.slot, styles.recommendationLabel, styles.leastRecommended]}>
+          <Text style={styles.labelText}>Least Recommended</Text>
+        </View>
+      </ScrollView>
 
-       {/* Least Recommended Label */}
-       <View style={[styles.slot, styles.recommendationLabel, styles.leastRecommended]}>
-         <Text style={styles.labelText}>Least Recommended</Text>
-       </View>
-     </ScrollView>
-   </View>
- );
+      <Modal
+  visible={slotModalVisible}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setSlotModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      {/* Title and Icon */}
+      <Text style={styles.modalHeader}>
+        {selectedSlot?.name}
+      </Text>
+
+      {/* Renewable Energy Type */}
+      <Text style={styles.modalSubheader}>
+        Type: {selectedSlot?.type}
+      </Text>
+
+      {/* Image with Fixed Size */}
+      <Image
+        source={selectedSlot?.image} // Use the image from the selected slot
+        style={{
+          width: 100, // Set a fixed width
+          height: 100, // Set a fixed height
+          resizeMode: 'contain', // Ensure the image scales properly
+          alignSelf: 'center', // Center the image
+          marginVertical: 10, // Add some vertical spacing
+        }}
+      />
+
+      {/* Conditional Message */}
+      {isMarkedWithX ? (
+        <Text style={[styles.errorText, { color: 'red', fontSize: 20  }]}>
+          ⚠️ Sorry, this Renewable Source cannot be applied to this infrastructure.
+        </Text>
+      ) : (
+        <Text style={styles.infoText}>
+          ✅ This renewable energy source is compatible with your chosen infrastructure.
+        </Text>
+      )}
+
+      {/* Close Button */}
+      <TouchableOpacity
+        style={styles.modalButton}
+        onPress={() => setSlotModalVisible(false)}
+      >
+        <Text style={styles.modalButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+    </>
+  );
 };
+
 
 export default function RenewableInfrastructures() {
  const router = useRouter();
@@ -548,5 +667,65 @@ tooltipText: {
   fontSize: 12,
   color: '#FFFFFF',
   textAlign: 'center',
+},
+modalBackground: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+modalContainer: {
+  width: '85%',
+  backgroundColor: '#FFFFFF', // White background for modal content
+  borderRadius: 12, // Rounded corners
+  padding: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.25,
+  shadowRadius: 6,
+  elevation: 10, // For Android shadow
+  alignItems: 'center', // Center align all content
+},
+
+// Header Text
+modalHeader: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#fff', // Dark gray for contrast
+  textAlign: 'center',
+  marginBottom: 10,
+},
+
+// Subheader Text
+modalSubheader: {
+  fontSize: 20,
+  color: '#fff', // Medium gray
+  marginBottom: 8,
+},
+
+// Information Text
+infoText: {
+  fontSize: 20,
+  color: '#008000', // Green color for positive feedback
+  lineHeight: 20,   // Improved readability
+  marginTop: 10,
+  flexDirection: 'row', // Align text and emoji horizontally
+  alignItems: 'center', // Vertically align text and emoji
+},
+
+// Error Text
+errorText: {
+  fontSize: 14,
+  fontWeight: '500',
+  textAlign: 'center',
+  marginTop: 10,
+},
+
+// Link Text
+linkText: {
+  color: '#007BFF', // Standard blue for links
+  textDecorationLine: 'underline',
+  fontWeight: '600',
 },
 });

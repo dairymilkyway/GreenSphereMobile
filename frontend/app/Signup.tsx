@@ -15,7 +15,7 @@ export default function Signup() {
   const handleSignup = async () => {
     try {
       // Use the hardcoded backend URL
-      const apiUrl = 'http://192.168.163.225:8082/signup';
+      const apiUrl = 'http://192.168.48.225:8082/signup';
       const result = await axios.post(apiUrl, { name, email, password }, { withCredentials: true });
 
       if (result.status === 201) {

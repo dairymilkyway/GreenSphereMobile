@@ -32,7 +32,7 @@ export default function Feedback() {
   // Function to submit feedback
   const handleFeedbackSubmit = async () => {
     try {
-      const apiUrl = 'http://192.168.163.225:8082/feedback'; // Replace with your backend URL
+      const apiUrl = 'http://192.168.48.225:8082/feedback'; // Replace with your backend URL
       const result = await axios.post(apiUrl, { name, rating, comment });
       if (result.status === 201) {
         alert('Feedback submitted successfully');
@@ -51,7 +51,7 @@ export default function Feedback() {
   const fetchFeedback = async () => {
     setLoading(true);
     try {
-      const apiUrl = 'http://192.168.163.225:8082/feedback'; // Backend should return all feedback
+      const apiUrl = 'http://192.168.48.225:8082/feedback'; // Backend should return all feedback
       const response = await axios.get(apiUrl);
       setAllFeedbacks(response.data); // Store all feedback
       setFilteredFeedbacks(response.data); // Initialize filtered feedback with all feedback

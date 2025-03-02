@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, Animated, StatusBar } from 'react-native';
+import Header from '../header'; // Import the Header component
 
 export default function Home() {
   // Animation values
@@ -33,30 +34,32 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
-      <Animated.Image
-        source={require('@/assets/images/greenspherelogo.png')}
-        resizeMode="contain" // Ensures the entire logo is visible
-        style={[
-          styles.logo,
-          {
-            opacity: logoFadeAnim,
-            transform: [{ scale: logoScaleAnim }],
-          },
-        ]}
-      />
+      <View style={styles.content}>
+        {/* Logo */}
+        <Animated.Image
+          source={require('@/assets/images/greenspherelogo.png')}
+          resizeMode="contain" // Ensures the entire logo is visible
+          style={[
+            styles.logo,
+            {
+              opacity: logoFadeAnim,
+              transform: [{ scale: logoScaleAnim }],
+            },
+          ]}
+        />
 
-      {/* Title */}
-      <Animated.Text
-        style={[
-          styles.title,
-          {
-            opacity: textFadeAnim,
-          },
-        ]}
-      >
-        Welcome to GreenSphere
-      </Animated.Text>
+        {/* Title */}
+        <Animated.Text
+          style={[
+            styles.title,
+            {
+              opacity: textFadeAnim,
+            },
+          ]}
+        >
+          Welcome to GreenSphere
+        </Animated.Text>
+      </View>
     </View>
   );
 }
@@ -64,9 +67,13 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0F1238', // Dark background for contrast
+    paddingTop: StatusBar.currentHeight, // Move down to avoid notch
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F1238', // Dark background for contrast
     padding: 20,
   },
   logo: {

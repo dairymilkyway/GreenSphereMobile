@@ -12,7 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Corrected import
 import { useRouter } from 'expo-router'; // For navigation
 import { Circle, Svg } from 'react-native-svg'; // Corrected import
-
+import Header from './header'; // Corrected import
 const customFont = {
   fontFamily: 'Poppins-Regular',
 };
@@ -130,14 +130,8 @@ export default function RenewableModels() {
 
   return (
     <View style={styles.container}>
-      {/* Go Back Button on Main Screen */}
-      <TouchableOpacity
-        style={styles.goBackButton}
-        onPress={() => router.back()} // Navigate back to the previous screen
-      >
-        <Icon name="arrow-left" size={24} color="#FFFFFF" />
-        <Text style={styles.goBackButtonText}>Go Back</Text>
-      </TouchableOpacity>
+      <Header />
+
 
       {/* Title */}
       <Text style={styles.title}>Renewable Energy Solutions</Text>
@@ -187,29 +181,46 @@ export default function RenewableModels() {
             <View style={styles.statsContainer}>
               {/* Efficiency */}
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Efficiency</Text>
-                <View style={styles.statValueContainer}>
-                  {[...Array(5)].map((_, index) => (
-                    <Text
-                      key={index}
-                      style={[
-                        styles.energyEmoji,
-                        {
-                          color:
-                            index < Math.floor(selectedItem?.efficiency / 20)
-                              ? "#4CAF50"
-                              : "#444",
-                        },
-                      ]}
-                    >
-                      ⚡
-                    </Text>
-                  ))}
-                  <Text style={styles.statValue}>
-                    {`${selectedItem?.efficiency}%`}
-                  </Text>
-                </View>
-              </View>
+  <Text style={styles.statLabel}>Efficiency</Text>
+  <View style={styles.statValueContainer}>
+    {/* Logic for Energy Icons */}
+    {(() => {
+      const fullIcons = Math.floor(selectedItem?.efficiency / 25); // Number of full icons
+      const remainder = selectedItem?.efficiency % 25; // Remainder to check for half icon
+      const totalIcons = 4; // Maximum number of icons
+      const icons = [];
+
+      // Add full icons
+      for (let i = 0; i < fullIcons; i++) {
+        icons.push(
+          <Icon key={`full-${i}`} name="battery" size={20} color="#4CAF50" /> // Full energy icon
+        );
+      }
+
+      // Add half icon if remainder > 0
+      if (remainder > 0) {
+        icons.push(
+          <Icon key="half" name="battery-outline" size={20} color="#FFC107" /> // Half energy icon
+        );
+      }
+
+      // Add empty icons for remaining slots
+      const emptyIcons = totalIcons - icons.length;
+      for (let i = 0; i < emptyIcons; i++) {
+        icons.push(
+          <Icon key={`empty-${i}`} name="battery-outline" size={20} color="#D3D3D3" /> // Empty energy icon
+        );
+      }
+
+      return (
+        <View style={{ flexDirection: 'row' }}>
+          {icons}
+        </View>
+      );
+    })()}
+    <Text style={styles.statValue}>{`${selectedItem?.efficiency}%`}</Text>
+  </View>
+</View>
 
               {/* Cost Savings */}
               <View style={styles.statRow}>
