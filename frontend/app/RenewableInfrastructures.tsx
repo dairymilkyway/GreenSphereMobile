@@ -10,12 +10,17 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
-
-const RenewableSlots = ({ infrastructure, roofType }) => {
+import { calculateTotalCost, PRICES } from './utils';
+const RenewableSlots = ({ infrastructure, roofType, addItem }) => {
   const [selectedSlot, setSelectedSlot] = useState(null); // Stores the selected slot
   const [slotModalVisible, setSlotModalVisible] = useState(false); // Controls modal visibility
   const [isMarkedWithX, setIsMarkedWithX] = useState(false); // Tracks if the selected slot is marked with "X"
 
+  const addSlot = (slot) => {
+    addItem(slot); // Call the addItem function passed from the parent
+    setSlotModalVisible(false);
+  };
+  
   const explanations = {
     "Single-Family with Gable": {
       "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
@@ -191,56 +196,56 @@ const RenewableSlots = ({ infrastructure, roofType }) => {
    renewableEnergyRankings[infrastructure] ||
    [];
 
-   return (
-    <>
-      {/* Horizontal Scrollable Area */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {/* Highly Recommended Label */}
-        <View style={[styles.slot, styles.recommendationLabel, styles.highlyRecommended]}>
-          <Text style={styles.labelText}>Highly Recommended</Text>
-        </View>
+ return (
+   <>
+     {/* Horizontal Scrollable Area */}
+     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+       {/* Highly Recommended Label */}
+       <View style={[styles.slot, styles.recommendationLabel, styles.highlyRecommended]}>
+         <Text style={styles.labelText}>Highly Recommended</Text>
+       </View>
 
-        {/* Renewable Energy Slots */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {renewableEnergySlots.map((slot, index) => {
-            const isLastTwo = index >= renewableEnergySlots.length - 2;
-            const isHeatPumpUnderMobileHome =
-              slot.name === 'Heat Pump' && infrastructure === 'Mobile Home';
+       {/* Renewable Energy Slots */}
+       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+         {renewableEnergySlots.map((slot, index) => {
+           const isLastTwo = index >= renewableEnergySlots.length - 2;
+           const isHeatPumpUnderMobileHome =
+             slot.name === 'Heat Pump' && infrastructure === 'Mobile Home';
 
-            return (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  setSelectedSlot(slot); // Set the clicked slot data
-                  setIsMarkedWithX(isLastTwo || isHeatPumpUnderMobileHome); // Track if the slot is marked with "X"
-                  setSlotModalVisible(true); // Open the modal
-                }}
-                style={[
-                  styles.slot,
-                  (isLastTwo || isHeatPumpUnderMobileHome) ? styles.leastRecommendedSlot : null,
-                ]}
-              >
-                {/* Slot Content */}
-                <Image source={slot.image} style={styles.slotImage} />
-                <Text style={styles.slotName}>{slot.name}</Text>
+           return (
+             <TouchableOpacity
+               key={index}
+               onPress={() => {
+                 setSelectedSlot(slot); // Set the clicked slot data
+                 setIsMarkedWithX(isLastTwo || isHeatPumpUnderMobileHome); // Track if the slot is marked with "X"
+                 setSlotModalVisible(true); // Open the modal
+               }}
+               style={[
+                 styles.slot,
+                 (isLastTwo || isHeatPumpUnderMobileHome) ? styles.leastRecommendedSlot : null,
+               ]}
+             >
+               {/* Slot Content */}
+               <Image source={slot.image} style={styles.slotImage} />
+               <Text style={styles.slotName}>{slot.name}</Text>
 
-                {/* Apply "X" for last two slots OR if it's a Heat Pump under a Mobile Home */}
-                {(isLastTwo || isHeatPumpUnderMobileHome) && (
-                  <Text style={styles.xMark}>X</Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+               {/* Apply "X" for last two slots OR if it's a Heat Pump under a Mobile Home */}
+               {(isLastTwo || isHeatPumpUnderMobileHome) && (
+                 <Text style={styles.xMark}>X</Text>
+               )}
+             </TouchableOpacity>
+           );
+         })}
+       </ScrollView>
 
-        {/* Least Recommended Label */}
-        <View style={[styles.slot, styles.recommendationLabel, styles.leastRecommended]}>
-          <Text style={styles.labelText}>Least Recommended</Text>
-        </View>
-      </ScrollView>
+       {/* Least Recommended Label */}
+       <View style={[styles.slot, styles.recommendationLabel, styles.leastRecommended]}>
+         <Text style={styles.labelText}>Least Recommended</Text>
+       </View>
+     </ScrollView>
 
-{/*Slot Modal */}
-      <Modal
+{/* Slot Modal */}
+<Modal
   visible={slotModalVisible}
   transparent={true}
   animationType="fade"
@@ -248,66 +253,69 @@ const RenewableSlots = ({ infrastructure, roofType }) => {
 >
   <View style={styles.modalOverlay}>
     <View style={styles.modalContent}>
-      {/* Title and Icon */}
-      <Text style={styles.modalHeader}>
-        {selectedSlot?.name}
-      </Text>
+      {/* Header and Subheader */}
+      <Text style={styles.modalHeader}>{selectedSlot?.name}</Text>
+      <Text style={styles.modalSubheader}>Type: {selectedSlot?.type}</Text>
 
-      {/* Renewable Energy Type */}
-      <Text style={styles.modalSubheader}>
-        Type: {selectedSlot?.type}
-      </Text>
-
-      {/* Image with Fixed Size */}
+      {/* Image */}
       <Image
-        source={selectedSlot?.image} // Use the image from the selected slot
+        source={selectedSlot?.image}
         style={{
-          width: 100, // Set a fixed width
-          height: 100, // Set a fixed height
-          resizeMode: 'contain', // Ensure the image scales properly
-          alignSelf: 'center', // Center the image
-          marginVertical: 10, // Add some vertical spacing
+          width: 100,
+          height: 100,
+          resizeMode: 'contain',
+          alignSelf: 'center',
+          marginVertical: 10,
         }}
       />
 
-      {/* Conditional Message */}
+      {/* Conditional Rendering for Compatibility Message */}
       {isMarkedWithX ? (
-        <Text style={[styles.errorText, { color: 'red', fontSize: 20  }]}>
+        <Text style={[styles.errorText, { color: 'red', fontSize: 20 }]}>
           ⚠️ Sorry, this Renewable Source cannot be applied to this infrastructure.
         </Text>
       ) : (
-        <Text style={styles.infoText}>
-          ✅ This renewable energy source is compatible with your chosen infrastructure.
-        </Text>
-      )}
- {/* Add Button */}
-<TouchableOpacity
-  style={[styles.modalButton, { marginBottom: 10 }]} // Add margin at the bottom
-  onPress={() => {
-    console.log('Added:', selectedSlot?.name);
-    setSlotModalVisible(false); // Close the modal after adding
-  }}
->
-  <Text style={styles.modalButtonText}>Add</Text>
-</TouchableOpacity>
+        <>
+          <Text style={styles.infoText}>
+            ✅ This renewable energy source is compatible with your chosen infrastructure.
+          </Text>
 
-{/* Close Button */}
-<TouchableOpacity
-  style={styles.modalButton} // No additional margin needed here
-  onPress={() => setSlotModalVisible(false)}
->
-  <Text style={styles.modalButtonText}>Close</Text>
-</TouchableOpacity>
+          {/* Add Button */}
+          <TouchableOpacity
+            style={[styles.modalButton, { marginBottom: 10 }]}
+            onPress={() => addSlot(selectedSlot)}
+          >
+            <Text style={styles.modalButtonText}>Add</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* Close Button */}
+      <TouchableOpacity
+        style={styles.modalButton}
+        onPress={() => setSlotModalVisible(false)}
+      >
+        <Text style={styles.modalButtonText}>Close</Text>
+      </TouchableOpacity>
     </View>
   </View>
 </Modal>
-    </>
-  );
+   </>
+ );
 };
 
 
+
 export default function RenewableInfrastructures() {
- const router = useRouter();
+  const router = useRouter();
+  const [addedItems, setAddedItems] = useState([]);
+
+  // State to track if the Techno-Economic Analysis button is enabled
+  const [isButtonEnabled, setIsButtonEnabled] = useState(false);
+
+  // State for modal visibility to show added items
+  const [addedItemsModalVisible, setAddedItemsModalVisible] = useState(false);
+
 
  // Data structure for infrastructures
  const infrastructures = [
@@ -390,7 +398,11 @@ export default function RenewableInfrastructures() {
    setSelectedItem(item);
    setModalVisible(true);
  };
-
+ const addItem = (item) => {
+  const updatedItems = [...addedItems, item];
+  setAddedItems(updatedItems);
+  setIsButtonEnabled(true); // Enable the button when an item is added
+};
  return (
    <ScrollView contentContainerStyle={styles.container}>
     
@@ -417,11 +429,12 @@ export default function RenewableInfrastructures() {
 
            {/* RenewableSlots Component */}
            {selectedItem && (
-             <RenewableSlots
-               infrastructure={selectedItem.main || selectedItem.name}
-               roofType={selectedItem.roofType || ''}
-             />
-           )}
+  <RenewableSlots
+    infrastructure={selectedItem.main || selectedItem.name}
+    roofType={selectedItem.roofType}
+    addItem={addItem} // Pass the addItem function
+  />
+)}
 
            {/* Close Button */}
            <TouchableOpacity
@@ -440,12 +453,66 @@ export default function RenewableInfrastructures() {
        Learn about infrastructures supporting renewable energy.
      </Text>
      <TouchableOpacity
-        style={[styles.card]} // Reuse card style with additional customizations
-        onPress={() => router.push('/TechnoEconomicAnalysis')} // Redirect to /TechnoEconomicAnalysis
-      >
-        <Icon name="line-chart" size={24} color="#4CAF50" style={styles.cardIcon} />
-        <Text style={styles.cardTitle}>Techno Economic Analysis</Text>
-      </TouchableOpacity>
+  style={[
+    styles.card,
+    !isButtonEnabled && styles.disabledCard, // Apply disabled style if the button is not enabled
+  ]}
+  onPress={() => {
+    if (isButtonEnabled) {
+      setAddedItemsModalVisible(true); // Open the modal
+    }
+  }}
+>
+  <Icon name="line-chart" size={24} color="#4CAF50" style={styles.cardIcon} />
+  <Text style={styles.cardTitle}>Techno Economic Analysis</Text>
+</TouchableOpacity>
+
+   {/* Modal for Added Items */}
+   <Modal visible={addedItemsModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            {/* Header */}
+            <Text style={styles.modalHeader}>Added Items Analysis</Text>
+
+            {/* List of Added Items with Analysis */}
+            {addedItems.length > 0 ? (
+              <ScrollView>
+                {addedItems.map((item, index) => {
+                  // Convert item name to camelCase for PRICES lookup
+                  const source = item.name.replace(/\s+/g, '').toLowerCase();
+                  const analysisData = calculateTotalCost(source, 1);
+
+                  return (
+                    <View key={index} style={styles.itemAnalysisContainer}>
+                      {/* Item Name and Type */}
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemType}>Type: {item.type}</Text>
+
+                      {/* Analysis Data */}
+                      <Text>Total Cost: ₱{analysisData.totalCost.toFixed(2)}</Text>
+                      <Text>Annual Savings: ₱{analysisData.annualSavings.toFixed(2)}</Text>
+                      <Text>
+                        Payback Period:{' '}
+                        {isNaN(analysisData.paybackPeriod) || analysisData.paybackPeriod === null
+                          ? '0 year'
+                          : `${analysisData.paybackPeriod.toFixed(2)} years`}
+                      </Text>
+                      <Text>Total Carbon Emissions: {analysisData.totalCarbonEmissions} kg CO₂</Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text>No items have been added yet.</Text>
+            )}
+
+            {/* Close Button */}
+            <TouchableOpacity onPress={() => setAddedItemsModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
      {/* Cards Section */}
      {infrastructures.map((item, index) => (
        <View key={index}>
@@ -746,5 +813,8 @@ linkText: {
   color: '#007BFF', // Standard blue for links
   textDecorationLine: 'underline',
   fontWeight: '600',
+},
+disabledCard: {
+  opacity: 0.5, // Reduce opacity to indicate disabled state
 },
 });
