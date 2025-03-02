@@ -239,6 +239,7 @@ const RenewableSlots = ({ infrastructure, roofType }) => {
         </View>
       </ScrollView>
 
+{/*Slot Modal */}
       <Modal
   visible={slotModalVisible}
   transparent={true}
@@ -279,14 +280,24 @@ const RenewableSlots = ({ infrastructure, roofType }) => {
           ✅ This renewable energy source is compatible with your chosen infrastructure.
         </Text>
       )}
+ {/* Add Button */}
+<TouchableOpacity
+  style={[styles.modalButton, { marginBottom: 10 }]} // Add margin at the bottom
+  onPress={() => {
+    console.log('Added:', selectedSlot?.name);
+    setSlotModalVisible(false); // Close the modal after adding
+  }}
+>
+  <Text style={styles.modalButtonText}>Add</Text>
+</TouchableOpacity>
 
-      {/* Close Button */}
-      <TouchableOpacity
-        style={styles.modalButton}
-        onPress={() => setSlotModalVisible(false)}
-      >
-        <Text style={styles.modalButtonText}>Close</Text>
-      </TouchableOpacity>
+{/* Close Button */}
+<TouchableOpacity
+  style={styles.modalButton} // No additional margin needed here
+  onPress={() => setSlotModalVisible(false)}
+>
+  <Text style={styles.modalButtonText}>Close</Text>
+</TouchableOpacity>
     </View>
   </View>
 </Modal>
@@ -382,6 +393,7 @@ export default function RenewableInfrastructures() {
 
  return (
    <ScrollView contentContainerStyle={styles.container}>
+    
      {/* Modal */}
      <Modal
        animationType="slide"
@@ -427,7 +439,13 @@ export default function RenewableInfrastructures() {
      <Text style={styles.description}>
        Learn about infrastructures supporting renewable energy.
      </Text>
-
+     <TouchableOpacity
+        style={[styles.card]} // Reuse card style with additional customizations
+        onPress={() => router.push('/TechnoEconomicAnalysis')} // Redirect to /TechnoEconomicAnalysis
+      >
+        <Icon name="line-chart" size={24} color="#4CAF50" style={styles.cardIcon} />
+        <Text style={styles.cardTitle}>Techno Economic Analysis</Text>
+      </TouchableOpacity>
      {/* Cards Section */}
      {infrastructures.map((item, index) => (
        <View key={index}>
@@ -586,17 +604,18 @@ const styles = StyleSheet.create({
    marginBottom: 20,
  },
  modalButton: {
-   backgroundColor: '#4CAF50',
-   padding: 12,
-   borderRadius: 10,
-   width: '100%',
-   alignItems: 'center',
- },
- modalButtonText: {
-   fontSize: 18,
-   color: '#FFFFFF',
-   fontWeight: 'bold',
- },
+  backgroundColor: '#4CAF50', // Green background
+  padding: 12, // Padding inside the button
+  borderRadius: 10, // Rounded corners
+  width: '100%', // Full width of the modal
+  alignItems: 'center', // Center-align text
+  marginTop: 10, // Space above the button
+},
+modalButtonText: {
+  fontSize: 18,
+  color: '#FFFFFF', // White text
+  fontWeight: 'bold',
+},
  renewableContainer: {
   width: '100%',
   marginTop: 20,
