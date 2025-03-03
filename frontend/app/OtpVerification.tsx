@@ -17,7 +17,8 @@ export default function OtpVerification() {
   const [isResending, setIsResending] = useState(false);
 
   // Hardcoded backend URL
-  const backendUrl = 'http://192.168.163.225:8082';
+  // const backendUrl = 'http://192.168.163.225:8082';
+  const backendUrl = 'http://172.20.10.2:8082';
 
   const maskEmail = (email) => {
     if (!email.includes('@')) return email;

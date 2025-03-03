@@ -11,6 +11,8 @@ import {
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
 import { calculateTotalCost, PRICES } from './utils';
+import AddedItemsModal from './AddedItemsModal'; // Import the modal
+
 const RenewableSlots = ({ infrastructure, roofType, addItem }) => {
   const [selectedSlot, setSelectedSlot] = useState(null); // Stores the selected slot
   const [slotModalVisible, setSlotModalVisible] = useState(false); // Controls modal visibility
@@ -399,8 +401,19 @@ export default function RenewableInfrastructures() {
    setModalVisible(true);
  };
  const addItem = (item) => {
-  const updatedItems = [...addedItems, item];
-  setAddedItems(updatedItems);
+  const existingItemIndex = addedItems.findIndex(
+    (addedItem) => addedItem.name === item.name && addedItem.type === item.type
+  );
+
+  if (existingItemIndex !== -1) {
+    const updatedItems = [...addedItems];
+    updatedItems[existingItemIndex].quantity += 1;
+    setAddedItems(updatedItems);
+  } else {
+    const updatedItems = [...addedItems, { ...item, quantity: 1 }];
+    setAddedItems(updatedItems);
+  }
+
   setIsButtonEnabled(true); // Enable the button when an item is added
 };
  return (
@@ -467,52 +480,12 @@ export default function RenewableInfrastructures() {
   <Text style={styles.cardTitle}>Techno Economic Analysis</Text>
 </TouchableOpacity>
 
-   {/* Modal for Added Items */}
-   <Modal visible={addedItemsModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            {/* Header */}
-            <Text style={styles.modalHeader}>Added Items Analysis</Text>
-
-            {/* List of Added Items with Analysis */}
-            {addedItems.length > 0 ? (
-              <ScrollView>
-                {addedItems.map((item, index) => {
-                  // Convert item name to camelCase for PRICES lookup
-                  const source = item.name.replace(/\s+/g, '').toLowerCase();
-                  const analysisData = calculateTotalCost(source, 1);
-
-                  return (
-                    <View key={index} style={styles.itemAnalysisContainer}>
-                      {/* Item Name and Type */}
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemType}>Type: {item.type}</Text>
-
-                      {/* Analysis Data */}
-                      <Text>Total Cost: ₱{analysisData.totalCost.toFixed(2)}</Text>
-                      <Text>Annual Savings: ₱{analysisData.annualSavings.toFixed(2)}</Text>
-                      <Text>
-                        Payback Period:{' '}
-                        {isNaN(analysisData.paybackPeriod) || analysisData.paybackPeriod === null
-                          ? '0 year'
-                          : `${analysisData.paybackPeriod.toFixed(2)} years`}
-                      </Text>
-                      <Text>Total Carbon Emissions: {analysisData.totalCarbonEmissions} kg CO₂</Text>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            ) : (
-              <Text>No items have been added yet.</Text>
-            )}
-
-            {/* Close Button */}
-            <TouchableOpacity onPress={() => setAddedItemsModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+     {/* Added Items Modal */}
+     <AddedItemsModal
+        visible={addedItemsModalVisible}
+        onClose={() => setAddedItemsModalVisible(false)}
+        addedItems={addedItems}
+      />
      {/* Cards Section */}
      {infrastructures.map((item, index) => (
        <View key={index}>

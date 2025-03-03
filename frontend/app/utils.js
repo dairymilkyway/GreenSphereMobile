@@ -1,38 +1,14 @@
-export const calculateTotalCost = (source, count) => {
-    // Normalize the source key
-    const normalizedSource = source.toLowerCase().replace(/\s+/g, '');
-  
-    // Check if the key exists in PRICES
-    if (!PRICES[normalizedSource]) {
-      console.error(`Error: Key "${normalizedSource}" not found in PRICES.`);
-      return {
-        totalProductCost: 0,
-        totalInstallationCost: 0,
-        totalMaintenanceCost: 0,
-        totalCarbonEmissions: 0,
-        totalCost: 0,
-        annualSavings: 0,
-        paybackPeriod: 0
-      }; // Return default values
-    }
-  
-    // Destructure the price data
-    const { productCost, installation, maintenance, carbonEmissions, energyProduction, electricityCost } = PRICES[normalizedSource];
-  
-    // Calculate annual savings
-    const annualSavings = energyProduction * electricityCost * count;
-  
-    // Return the calculated costs
-    return {
-      totalProductCost: productCost * count,
-      totalInstallationCost: installation * count,
-      totalMaintenanceCost: maintenance * count,
-      totalCarbonEmissions: carbonEmissions * count,
-      totalCost: productCost * count + installation * count + maintenance * count,
-      annualSavings: annualSavings,
-      paybackPeriod: (productCost * count + installation * count + maintenance * count) / annualSavings
-    };
-  };
+export const calculateTotalCost = (source, quantity) => {
+  const prices = PRICES[source.toLowerCase().replace(/\s+/g, '')]; // Normalize the source key
+  if (!prices) return { totalCost: 0, annualSavings: 0, paybackPeriod: null, totalCarbonEmissions: 0 };
+
+  const totalCost = (prices.productCost + prices.installation + prices.maintenance) * quantity;
+  const annualSavings = prices.energyProduction * prices.electricityCost * quantity;
+  const paybackPeriod = totalCost / annualSavings;
+  const totalCarbonEmissions = prices.carbonEmissions * quantity;
+
+  return { totalCost, annualSavings, paybackPeriod, totalCarbonEmissions };
+};
 
   export const PRICES = {
     solarpanels: {
