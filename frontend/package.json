@@ -42,6 +42,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.7",
+    "react-native-chart-kit": "^6.12.0",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-gesture-handler": "~2.20.2",
@@ -58,6 +59,7 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "react-navigation": "^5.0.0",
+    "recharts": "^2.15.1",
     "three": "^0.166.1"
   },
   "devDependencies": {
