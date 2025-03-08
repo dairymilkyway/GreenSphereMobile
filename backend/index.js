@@ -10,6 +10,9 @@ const FeedbackModel = require("./model/Feedback");
 const { verifyUser } = require("./middleware/auth");
 const sendOtpEmail = require('./mailer');
 const generateOtp = require('./otp');
+const CostAnalysis = require("./model/CostAnalysis");
+const CarbonPaybackPeriodAnalysis = require("./model/CarbonPaybackPeriodAnalysis");
+const EnergyUsageBySourceModel = require('./model/EnergyUsageBySource');
 const app = express();
 app.use(express.json());
 
@@ -183,6 +186,73 @@ app.post("/resend-otp", async (req, res) => {
     res.json({ message: "A new OTP has been sent to your email." });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+/** ➤ Save Cost Analysis */
+app.post("/api/cost-analysis", async (req, res) => {
+  try {
+      console.log("📩 Received Cost Analysis Request:", req.body);
+      const { user_id, TotalProductCost, TotalInstallationCost, TotalMaintenanceCost } = req.body;
+
+      if (!user_id || !TotalProductCost || !TotalInstallationCost || !TotalMaintenanceCost) {
+          return res.status(400).json({ error: "❌ Missing required fields" });
+      }
+
+      const GrandTotal = TotalProductCost + TotalInstallationCost + TotalMaintenanceCost;
+      const newCostAnalysis = new CostAnalysis({ user_id, TotalProductCost, TotalInstallationCost, TotalMaintenanceCost, GrandTotal });
+
+      await newCostAnalysis.save();
+      console.log("✅ Cost Analysis Saved:", newCostAnalysis);
+      res.status(201).json({ message: "✅ Cost Analysis Saved", data: newCostAnalysis });
+
+  } catch (error) {
+      console.error("❌ Error saving cost analysis:", error);
+      res.status(500).json({ error: error.message });
+  }
+});
+
+/** ➤ Save Carbon Payback Period Analysis */
+app.post("/api/carbon-analysis", async (req, res) => {
+  try {
+      console.log("📩 Received Carbon Payback Analysis Request:", req.body);
+      const { user_id, CarbonPaybackPeriod, TotalCarbonEmission } = req.body;
+
+      if (!user_id || !CarbonPaybackPeriod || !TotalCarbonEmission) {
+          return res.status(400).json({ error: "❌ Missing required fields" });
+      }
+
+      const newCarbonAnalysis = new CarbonPaybackPeriodAnalysis({ user_id, CarbonPaybackPeriod, TotalCarbonEmission });
+
+      await newCarbonAnalysis.save();
+      console.log("✅ Carbon Payback Analysis Saved:", newCarbonAnalysis);
+      res.status(201).json({ message: "✅ Carbon Payback Analysis Saved", data: newCarbonAnalysis });
+
+  } catch (error) {
+      console.error("❌ Error saving carbon analysis:", error);
+      res.status(500).json({ error: error.message });
+  }
+});
+
+/** ➤ Save Energy Usage By Source */
+app.post("/api/energy-usage", async (req, res) => {
+  try {
+      console.log("📩 Received Energy Usage Request:", req.body);
+      const { user_id, Type, Emissions } = req.body;
+
+      if (!user_id || !Type || !Emissions) {
+          return res.status(400).json({ error: "❌ Missing required fields" });
+      }
+
+      const newEnergyUsage = new EnergyUsageBySourceModel({ user_id, Type, Emissions });
+
+      await newEnergyUsage.save();
+      console.log("✅ Energy Usage Saved:", newEnergyUsage);
+      res.status(201).json({ message: "✅ Energy Usage Saved", data: newEnergyUsage });
+
+  } catch (error) {
+      console.error("❌ Error saving energy usage:", error);
+      res.status(500).json({ error: error.message });
   }
 });
 
