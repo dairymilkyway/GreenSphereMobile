@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { TextInput, TouchableOpacity, Text, View, StyleSheet, Dimensions, Image } from 'react-native';
+import { TextInput, TouchableOpacity, Text, View, StyleSheet, Dimensions, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import greensphereLogo from '@/assets/images/greenspherelogo.png';
+import config from './config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
@@ -15,10 +16,6 @@ export default function OtpVerification() {
   const inputRefs = useRef([]);
   const [resendCooldown, setResendCooldown] = useState(30);
   const [isResending, setIsResending] = useState(false);
-
-  // Hardcoded backend URL
-  // const backendUrl = 'http://192.168.163.225:8082';
-  const backendUrl = 'http://172.20.10.2:8082';
 
   const maskEmail = (email) => {
     if (!email.includes('@')) return email;
@@ -66,11 +63,30 @@ export default function OtpVerification() {
         setError('Email is missing. Please restart the process.');
         return;
       }
-      const response = await axios.post(`${backendUrl}/verify-otp`, { email, otp: enteredOtp });
-      if (response.status === 200) {
-        alert('OTP Verified Successfully!');
-        setTimeout(() => router.push('/Login'), 2500);
+
+      // Iterate through the IP list and attempt to verify OTP with each IP
+      for (const ip of config.ipList) {
+        const apiUrl = `http://${ip}/verify-otp`;
+        try {
+          console.log(`Attempting OTP verification with IP: ${ip}`);
+          const response = await axios.post(
+            apiUrl,
+            { email, otp: enteredOtp },
+            { timeout: 500 } // Timeout after 0.5 seconds
+          );
+
+          if (response.status === 200) {
+            alert('OTP Verified Successfully!');
+            setTimeout(() => router.push('/Login'), 2500);
+            return; // Exit the loop if verification succeeds
+          }
+        } catch (error) {
+          console.warn(`IP ${ip} failed: ${error.message || error}`);
+        }
       }
+
+      // If no IP succeeds, show an error
+      setError('Unable to connect to the server. Please try again later.');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP');
     }
@@ -79,11 +95,32 @@ export default function OtpVerification() {
   const handleResendOtp = async () => {
     setIsResending(true);
     try {
-      await axios.post(`${backendUrl}/resend-otp`, { email });
-      alert('New OTP sent to your email!');
-      setResendCooldown(30);
+      // Iterate through the IP list and attempt to resend OTP with each IP
+      for (const ip of config.ipList) {
+        const apiUrl = `http://${ip}/resend-otp`;
+        try {
+          console.log(`Attempting OTP resend with IP: ${ip}`);
+          const response = await axios.post(
+            apiUrl,
+            { email },
+            { timeout: 500 } // Timeout after 0.5 seconds
+          );
+
+          if (response.status === 200) {
+            alert('New OTP sent to your email!');
+            setResendCooldown(30);
+            setIsResending(false);
+            return; // Exit the loop if resend succeeds
+          }
+        } catch (error) {
+          console.warn(`IP ${ip} failed: ${error.message || error}`);
+        }
+      }
+
+      // If no IP succeeds, show an error
+      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
     } catch (error) {
-      alert('Failed to resend OTP. Please try again.');
+      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
     }
     setIsResending(false);
   };

@@ -1,39 +1,50 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/ThemedText';
+import config from './config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // State for loading indicator
 
-  // Hardcoded backend URL
-  // const apiUrl = 'http://192.168.163.225:8082/login';
-  // const apiUrl = 'http://192.168.48.225:8082/login';
-  const apiUrl = 'http://192.168.0.251:8082/login';
-  // const apiUrl = 'http://172.20.10.2:8082/login';
   const handleLogin = async () => {
+    setIsLoading(true); // Show loading indicator
     try {
-      const loginResponse = await axios.post(apiUrl, { email, password });
-      console.log('Login response:', loginResponse.data); // Debugging
+      for (const ip of config.ipList) {
+        const apiUrl = `http://${ip}/login`;
+        try {
+          console.log(`Attempting login with IP: ${ip}`);
+          const loginResponse = await axios.post(apiUrl, { email, password }, { timeout: 500 }); // Timeout after 0.5 seconds
 
-      if (loginResponse.data.message === 'Success') {
-        // Store the token
-        await AsyncStorage.setItem('token', loginResponse.data.token);
-        router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/Home');
-      } else if (loginResponse.data.redirect === '/verify-otp') {
-        router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
+          if (loginResponse.data.message === 'Success') {
+            // Store the token
+            await AsyncStorage.setItem('token', loginResponse.data.token);
+            router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/Home');
+            return; // Exit the loop if login succeeds
+          } else if (loginResponse.data.redirect === '/verify-otp') {
+            router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
+            return; // Exit the loop if OTP verification is required
+          }
+        } catch (error) {
+          console.warn(`IP ${ip} failed: ${error.message || error}`);
+        }
       }
+
+      // If no IP succeeds, show an error
+      Alert.alert('Error', 'Unable to connect to any backend server. Please try again later.');
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
+      console.error('Login error:', error.message || error);
+    } finally {
+      setIsLoading(false); // Hide loading indicator
     }
   };
-
 
   return (
     <LinearGradient colors={['#05002E', '#191540']} style={styles.container}>
@@ -65,8 +76,12 @@ export default function Login() {
             secureTextEntry
           />
           
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <ThemedText style={styles.buttonText}>Log in</ThemedText>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" /> // Show loading indicator
+            ) : (
+              <ThemedText style={styles.buttonText}>Log in</ThemedText>
+            )}
           </TouchableOpacity>
           
           <View style={styles.signupContainer}>

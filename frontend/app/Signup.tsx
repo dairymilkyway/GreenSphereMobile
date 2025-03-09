@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
+import config from './config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
@@ -14,21 +15,31 @@ export default function Signup() {
 
   const handleSignup = async () => {
     try {
-      // Use the hardcoded backend URL
-      // const apiUrl = 'http://192.168.48.225:8082/signup';
-      const apiUrl = 'http://172.20.10.2:8082/signup';
-      const result = await axios.post(apiUrl, { name, email, password }, { withCredentials: true });
+      // Iterate through the IP list and attempt signup with each IP
+      for (const ip of config.ipList) {
+        const apiUrl = `http://${ip}/signup`;
+        try {
+          console.log(`Attempting signup with IP: ${ip}`);
+          const result = await axios.post(
+            apiUrl,
+            { name, email, password },
+            { withCredentials: true, timeout: 500 } // Timeout after 0.5 seconds
+          );
 
-      if (result.status === 201) {
-        console.log('User created successfully');
-        router.push('/Login');
+          if (result.status === 201) {
+            console.log('User created successfully');
+            router.push('/Login');
+            return; // Exit the loop if signup succeeds
+          }
+        } catch (error) {
+          console.warn(`IP ${ip} failed: ${error.message || error}`);
+        }
       }
+
+      // If no IP succeeds, show an error
+      Alert.alert('Error', 'Unable to connect to any backend server. Please try again later.');
     } catch (err) {
-      if (err.response && err.response.status === 400) {
-        alert('Email already exists. Please use another email.');
-      } else {
-        console.error(err);
-      }
+      console.error(err);
     }
   };
 
