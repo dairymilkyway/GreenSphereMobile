@@ -3,7 +3,11 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import { calculateTotalCost, PRICES } from './utils'; // Import both functions
 import axios from 'axios';
+import ViewShot from "react-native-view-shot";
+import { useRef } from "react";
+import exportToPDF from "./ExportToPDF";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 
@@ -12,6 +16,12 @@ const COLORS = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1'];
 
 
 const AddedItemsModal = ({ visible, onClose, addedItems }) => {
+  const costBenefitRef = useRef(null);
+  const savingsRef = useRef(null);
+  const carbonRef = useRef(null);
+  const energyUsageRef = useRef(null);
+  const totalCostRef = useRef(null);
+  const costBreakdownRef = useRef(null);
   const [isSaveSuccessful, setIsSaveSuccessful] = React.useState(false);
   // Prepare data for charts
   const totalProductCost = addedItems.reduce(
@@ -59,7 +69,36 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
     }
     return acc;
   }, {});
-
+  const fetchUserData = async () => { 
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error("Token not found in AsyncStorage.");
+        return null;
+      }
+  
+      const response = await fetch('http://192.168.0.251:8082/user', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!response.ok) {
+        console.error("Backend returned error:", response.status, response.statusText);
+        return null;
+      }
+  
+      const data = await response.json();
+      console.log("ðŸ“¥ Full Backend Response:", data); // Log the full response
+      console.log("ðŸ“¥ User Data Extracted:", data.user); // Log the extracted user data
+      return data.user;
+    } catch (error) {
+      console.error("Error fetching user data:", error.message);
+      return null;
+    }
+  };
   // Define saveData function within the component to access these variables
   const saveData = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -263,7 +302,9 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
           </View>
           
           {/* Wrap the content in a ScrollView */}
+          
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ViewShot ref={costBenefitRef} options={{ format: "jpg", quality: 0.9 }}>
             {/* Cost vs. Benefit Analysis */}
             <View style={styles.section}>
               <Text style={styles.chartTitle}>Cost vs. Benefit Analysis</Text>
@@ -292,8 +333,10 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
                 )}
               </View>
             </View>
+            </ViewShot>
 
             {/* Bar Chart for Cost vs. Savings */}
+            <ViewShot ref={savingsRef} options={{ format: "jpg", quality: 0.9 }}>
             <View style={styles.chartSection}>
               <Text style={styles.chartTitle}>Cost vs. Savings Comparison</Text>
               <View style={styles.chartContainer}>
@@ -320,8 +363,9 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
                 />
               </View>
             </View>
-
+            </ViewShot>
                {/* Carbon Payback Period Analysis with Bar Chart */}
+               <ViewShot ref={carbonRef} options={{ format: "jpg", quality: 0.9 }}>
                <View style={styles.chartSection}>
               <Text style={styles.chartTitle}>Carbon Payback Period Analysis</Text>
               <View style={styles.infoCard}>
@@ -376,7 +420,7 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
                 ))}
               </View>
             </View>
-
+            </ViewShot>
 
             {/* Pie Chart for Cost Breakdown */}
             <View style={styles.chartSection}>
@@ -407,6 +451,7 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
             </View>
 
             {/* Energy Usage Section */}
+            <ViewShot ref={energyUsageRef} options={{ format: "jpg", quality: 0.9 }}>
             <View style={styles.chartSection}>
               <Text style={styles.chartTitle}>Energy Usage by Source</Text>
               <View style={styles.chartContainer}>
@@ -440,9 +485,10 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
                 />
               </View>
             </View>
-
+</ViewShot>
         
             {/* Total Costs Section */}
+            <ViewShot ref={totalCostRef} options={{ format: "jpg", quality: 0.9 }}>
             <View style={styles.infoSection}>
               <Text style={styles.chartTitle}>Total Costs</Text>
               <View style={styles.costSummaryCard}>
@@ -464,49 +510,41 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
                 </View>
               </View>
             </View>
+            </ViewShot>
 {/* Export Button */}
 <View style={styles.buttonContainer}>
   {/* Export to PDF Button */}
   <TouchableOpacity
-  onPress={async () => {
-    if (!addedItems || addedItems.length === 0) {
-      console.error("No data available for PDF export!");
-      return; // Exit early if no data is available
-    }
+        onPress={async () => {
+          if (!addedItems || addedItems.length === 0) {
+            console.error("No data available for PDF export!");
+            return; // Exit early if no data is available
+          }
 
-      // Fetch user data
-const fetchUserData = async () => {
-  try {
-    const response = await axios.get('http://192.168.0.251:8082/user', { withCredentials: true });
-    return response.data.user; // Assuming the user data is returned in the `user` field
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    return null;
-  }
-};
+          const userData = await fetchUserData();
+          if (userData) {
+            console.log("📄 User Data Retrieved:", userData);
+            console.log("🛠️ Added Items Data:", addedItems);
 
-      const userData = await fetchUserData();
-
-      if (userData) {
-        // Call ExportToPDF with user data
-        exportToPDF(
-          costBenefitRef,
-          savingsRef,
-          carbonRef,
-          energyUsageRef,
-          totalCostRef,
-          costBreakdownRef,
-          addedItems,
-          userData
-        );
-      } else {
-        console.error("User data not available. Cannot export PDF.");
-      }
-    }}
-    style={styles.exportButton}
-  >
-    <Text style={styles.buttonText}>Export to PDF</Text>
-  </TouchableOpacity>
+            // Call ExportToPDF with user data
+            exportToPDF(
+              costBenefitRef,
+              savingsRef,
+              carbonRef,
+              energyUsageRef,
+              totalCostRef,
+              costBreakdownRef,
+              addedItems,
+              userData
+            );
+          } else {
+            console.error("User data not available. Cannot export PDF.");
+          }
+        }}
+        style={styles.exportButton}
+      >
+        <Text style={styles.buttonText}>Export to PDF</Text>
+      </TouchableOpacity>
 
   {/* Save Data Button */}
   <TouchableOpacity onPress={saveData} style={styles.saveButton}>
