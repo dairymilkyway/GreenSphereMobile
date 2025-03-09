@@ -422,33 +422,35 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
             </View>
             </ViewShot>
 
-            {/* Pie Chart for Cost Breakdown */}
-            <View style={styles.chartSection}>
-              <Text style={styles.chartTitle}>Cost Breakdown</Text>
-              <View style={styles.chartContainer}>
-                <PieChart
-                  data={pieChartData}
-                  width={screenWidth * 0.9}
-                  height={220}
-                  chartConfig={{
-                    backgroundColor: '#1A1A40',
-                    backgroundGradientFrom: '#1E1E50',
-                    backgroundGradientTo: '#1A1A40',
-                    decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    style: { borderRadius: 12 },
-                  }}
-                  accessor="value"
-                  backgroundColor="transparent"
-                  paddingLeft="15"
-                  absolute
-                  hasLegend={true}
-                  center={[screenWidth * 0.2, 0]}
-                  avoidFalseZero={true}
-                />
-              </View>
-            </View>
+{/* Pie Chart for Cost Breakdown */}
+<View style={styles.chartSection}>
+  <ViewShot ref={costBreakdownRef} options={{ format: "jpg", quality: 0.9 }}>
+    <Text style={styles.chartTitle}>Cost Breakdown</Text>
+    <View style={styles.chartContainer}>
+      <PieChart
+        data={pieChartData}
+        width={screenWidth * 0.9}
+        height={220}
+        chartConfig={{
+          backgroundColor: '#1A1A40',
+          backgroundGradientFrom: '#1E1E50',
+          backgroundGradientTo: '#1A1A40',
+          decimalPlaces: 0,
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          style: { borderRadius: 12 },
+        }}
+        accessor="value"
+        backgroundColor="transparent"
+        paddingLeft="15"
+        absolute
+        hasLegend={true}
+        center={[screenWidth * 0.2, 0]}
+        avoidFalseZero={true}
+      />
+    </View>
+  </ViewShot>
+</View>
 
             {/* Energy Usage Section */}
             <ViewShot ref={energyUsageRef} options={{ format: "jpg", quality: 0.9 }}>
