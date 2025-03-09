@@ -3,6 +3,7 @@ import { View, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions } from
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/ThemedText';
 
 const { width } = Dimensions.get('window');
@@ -18,9 +19,12 @@ export default function Login() {
   // const apiUrl = 'http://172.20.10.2:8082/login';
   const handleLogin = async () => {
     try {
-      const loginResponse = await axios.post(apiUrl, { email, password }, { withCredentials: true });
+      const loginResponse = await axios.post(apiUrl, { email, password });
       console.log('Login response:', loginResponse.data); // Debugging
+
       if (loginResponse.data.message === 'Success') {
+        // Store the token
+        await AsyncStorage.setItem('token', loginResponse.data.token);
         router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/Home');
       } else if (loginResponse.data.redirect === '/verify-otp') {
         router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
@@ -29,6 +33,7 @@ export default function Login() {
       console.error('Login error:', error.response?.data || error.message);
     }
   };
+
 
   return (
     <LinearGradient colors={['#05002E', '#191540']} style={styles.container}>

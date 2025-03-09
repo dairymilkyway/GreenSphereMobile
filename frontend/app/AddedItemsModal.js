@@ -2,119 +2,17 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import { calculateTotalCost, PRICES } from './utils'; // Import both functions
-
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 
 // Custom Color Palette
 const COLORS = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1'];
-const saveData = async () => {
-  try {
-    // Fetch logged-in user ID from the backend
-    const userResponse = await fetch("http://192.168.0.251:8082/user", {
-      method: "GET",
-      credentials: "include", // Required to send cookies/session data
-    });
 
-    if (!userResponse.ok) {
-      throw new Error("Failed to fetch logged-in user.");
-    }
-
-    const userData = await userResponse.json();
-    const user_id = userData.id; // Extract user ID
-
-    console.log("✅ Logged-in User ID:", user_id);
-
-    console.log("🛠 Debug: Total Product Cost:", totalProductCost);
-    console.log("🛠 Debug: Total Installation Cost:", totalInstallationCost);
-    console.log("🛠 Debug: Total Maintenance Cost:", totalMaintenanceCost);
-    console.log("🛠 Debug: Carbon Payback Period:", carbonPaybackPeriod);
-    console.log("🛠 Debug: Total Carbon Emissions:", totalCarbonEmissions);
-    console.log("🛠 Debug: Energy Usage Data:", energyUsageByType);
-
-    // Prepare data
-    const costAnalysisData = {
-      user_id,
-      TotalProductCost: parseFloat(totalProductCost),
-      TotalInstallationCost: parseFloat(totalInstallationCost),
-      TotalMaintenanceCost: parseFloat(totalMaintenanceCost),
-    };
-
-    const carbonAnalysisData = {
-      user_id,
-      CarbonPaybackPeriod: parseFloat(carbonPaybackPeriod),
-      TotalCarbonEmission: parseFloat(totalCarbonEmissions),
-    };
-
-    // Filter out zero-emission energy sources
-    const energyUsageData = Object.entries(energyUsageByType)
-      .filter(([type, emissions]) => emissions > 0)
-      .map(([type, emissions]) => ({
-        user_id,
-        Type: type,
-        Emissions: parseFloat(emissions),
-      }));
-
-    console.log("📩 Sending Cost Analysis:", costAnalysisData);
-    console.log("📩 Sending Carbon Analysis:", carbonAnalysisData);
-    console.log("📩 Sending Filtered Energy Usage:", energyUsageData);
-
-    // Send requests
-    const costResponse = await fetch("http://192.168.0.251:8082/api/cost-analysis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(costAnalysisData),
-    });
-
-    const carbonResponse = await fetch("http://192.168.0.251:8082/api/carbon-analysis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(carbonAnalysisData),
-    });
-
-    const costData = await costResponse.json();  // ✅ Read once
-    const carbonData = await carbonResponse.json();  // ✅ Read once
-
-    console.log("✅ Cost Analysis Response:", costData);
-    console.log("✅ Carbon Analysis Response:", carbonData);
-
-    // Send energy usage requests in parallel
-    const energyUsageResponses = await Promise.all(
-      energyUsageData.map((entry) =>
-        fetch("http://192.168.0.251:8082/api/energy-usage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(entry),
-        }).then((res) => res.json()) // Read response once
-      )
-    );
-
-    console.log("✅ Energy Usage Responses:", energyUsageResponses);
-
-    Swal.fire({
-      icon: "success",
-      title: "Success",
-      text: "Data saved successfully!",
-      customClass: {
-        container: 'swal2-container', // Add a custom class for the container
-        popup: 'swal2-popup', // Add a custom class for the popup
-      },
-      didOpen: () => {
-        // Manually set the z-index of the SweetAlert modal
-        const swalContainer = document.querySelector('.swal2-container');
-        if (swalContainer) {
-          swalContainer.style.zIndex = '99999'; // Set a higher z-index than your main modal
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error("❌ Error saving data:", error);
-    alert("Failed to save data.");
-  }
-};
 
 const AddedItemsModal = ({ visible, onClose, addedItems }) => {
+  const [isSaveSuccessful, setIsSaveSuccessful] = React.useState(false);
   // Prepare data for charts
   const totalProductCost = addedItems.reduce(
     (sum, item) => {
@@ -153,7 +51,120 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
   );
 
   const carbonPaybackPeriod = (totalCarbonEmissions / 1000).toFixed(2); // Example calculation
+  const energyUsageByType = addedItems.reduce((acc, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
+    const prices = PRICES[source];
+    if (prices) {
+      acc[source] = (acc[source] || 0) + prices.energyProduction * item.quantity;
+    }
+    return acc;
+  }, {});
 
+  // Define saveData function within the component to access these variables
+  const saveData = async () => {
+    const token = await AsyncStorage.getItem('token');
+    
+    try {
+      // Fetch logged-in user ID from the backend
+      const userResponse = await fetch("http://192.168.0.251:8082/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: "GET",
+        credentials: "include", // Required to send cookies/session data
+      });
+  
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch logged-in user.");
+      }
+  
+      const userData = await userResponse.json();
+  
+      // Debugging: Log the entire userData object
+      console.log("🛠 Debug: User Data from Backend:", userData);
+  
+      // Validate the presence of the user ID in the nested structure
+      const userIdField = userData?.user?._id || userData?.user?.userId;
+      if (!userIdField) {
+        throw new Error("User ID is missing or undefined in the backend response.");
+      }
+  
+      const user_id = userIdField; // Extract user ID
+      console.log("✅ Logged-in User ID:", user_id);
+  
+      // Debugging: Log other variables
+      console.log("🛠 Debug: Total Product Cost:", totalProductCost);
+      console.log("🛠 Debug: Total Installation Cost:", totalInstallationCost);
+      console.log("🛠 Debug: Total Maintenance Cost:", totalMaintenanceCost);
+      console.log("🛠 Debug: Carbon Payback Period:", carbonPaybackPeriod);
+      console.log("🛠 Debug: Total Carbon Emissions:", totalCarbonEmissions);
+      console.log("🛠 Debug: Energy Usage Data:", energyUsageByType);
+  
+      // Prepare data
+      const costAnalysisData = {
+        user_id,
+        TotalProductCost: parseFloat(totalProductCost),
+        TotalInstallationCost: parseFloat(totalInstallationCost),
+        TotalMaintenanceCost: parseFloat(totalMaintenanceCost),
+      };
+  
+      const carbonAnalysisData = {
+        user_id,
+        CarbonPaybackPeriod: parseFloat(carbonPaybackPeriod),
+        TotalCarbonEmission: parseFloat(totalCarbonEmissions),
+      };
+  
+      // Filter out zero-emission energy sources
+      const energyUsageData = Object.entries(energyUsageByType)
+        .filter(([type, emissions]) => emissions > 0)
+        .map(([type, emissions]) => ({
+          user_id,
+          Type: type,
+          Emissions: parseFloat(emissions),
+        }));
+  
+      console.log("📩 Sending Cost Analysis:", costAnalysisData);
+      console.log("📩 Sending Carbon Analysis:", carbonAnalysisData);
+      console.log("📩 Sending Filtered Energy Usage:", energyUsageData);
+  
+      // Send requests
+      const costResponse = await fetch("http://192.168.0.251:8082/api/cost-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(costAnalysisData),
+      });
+  
+      const carbonResponse = await fetch("http://192.168.0.251:8082/api/carbon-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(carbonAnalysisData),
+      });
+  
+      const costData = await costResponse.json();  // ✅ Read once
+      const carbonData = await carbonResponse.json();  // ✅ Read once
+  
+      console.log("✅ Cost Analysis Response:", costData);
+      console.log("✅ Carbon Analysis Response:", carbonData);
+  
+      // Send energy usage requests in parallel
+      const energyUsageResponses = await Promise.all(
+        energyUsageData.map((entry) =>
+          fetch("http://192.168.0.251:8082/api/energy-usage", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry),
+          }).then((res) => res.json()) // Read response once
+        )
+      );
+      setIsSaveSuccessful(true);
+      console.log("Data saved successfully");
+      console.log("✅ Energy Usage Responses:", energyUsageResponses);
+  
+    } catch (error) {
+      console.error("❌ Error saving data:", error);
+      alert("Failed to save data.");
+    }
+  };
   const pieChartData = [
     { name: 'Product Cost', value: totalProductCost, color: COLORS[0], legendFontColor: '#FFFFFF', legendFontSize: 10 },
     { name: 'Installation Cost', value: totalInstallationCost, color: COLORS[1], legendFontColor: '#FFFFFF', legendFontSize: 10 },
@@ -222,6 +233,24 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
 
   return (
     <Modal transparent visible={visible} animationType="fade">
+        <Modal
+      transparent
+      visible={isSaveSuccessful}
+      animationType="fade"
+      onRequestClose={() => setIsSaveSuccessful(false)}
+    >
+      <View style={styles.successModalOverlay}>
+        <View style={styles.successModalContainer}>
+          <Text style={styles.successMessage}>Data Successfully Saved on the Database</Text>
+          <TouchableOpacity 
+            style={styles.successButton}
+            onPress={() => setIsSaveSuccessful(false)}
+          >
+            <Text style={styles.successButtonText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
       <View style={styles.modalOverlay}>
         {/* Expanded Modal Container */}
         <View style={[styles.modalContainer, styles.shadow]}>
@@ -439,22 +468,22 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
 <View style={styles.buttonContainer}>
   {/* Export to PDF Button */}
   <TouchableOpacity
-    onPress={async () => {
-      if (!addedItems || addedItems.length === 0) {
-        console.error("No data available for PDF export!");
-        return; // Exit early if no data is available
-      }
+  onPress={async () => {
+    if (!addedItems || addedItems.length === 0) {
+      console.error("No data available for PDF export!");
+      return; // Exit early if no data is available
+    }
 
       // Fetch user data
-      const fetchUserData = async () => {
-        try {
-          const response = await axios.get('http://localhost:3001/user', { withCredentials: true });
-          return response.data.user; // Assuming the user data is returned in the `user` field
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          return null;
-        }
-      };
+const fetchUserData = async () => {
+  try {
+    const response = await axios.get('http://192.168.0.251:8082/user', { withCredentials: true });
+    return response.data.user; // Assuming the user data is returned in the `user` field
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    return null;
+  }
+};
 
       const userData = await fetchUserData();
 
@@ -720,6 +749,38 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     alignItems: 'center',
+  },
+
+  successModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  successModalContainer: {
+    backgroundColor: '#28a745',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  successMessage: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  successButton: {
+    backgroundColor: '#218838',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  successButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

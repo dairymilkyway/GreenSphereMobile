@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const jwt = require('jsonwebtoken'); // For generating JWT tokens
 const bcrypt = require("bcrypt");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
@@ -67,27 +68,39 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await UserModel.findOne({ email });
 
+    // Find the user by email
+    const user = await UserModel.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "No Records Found" });
     }
 
+    // Compare the provided password with the hashed password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ message: "Password does not match!" });
     }
 
-    // If user is NOT verified, redirect them to verify OTP
-    if (user.role === "user" && user.isVerified === false) {
-      return res.json({
+    // Check if the user is verified
+    if (user.role === "user" && !user.isVerified) {
+      return res.status(403).json({
         message: "Please verify your email with the OTP sent to you.",
         redirect: "/verify-otp",
-        email: email, // Send email for use in frontend
+        email: email,
       });
     }
 
-    // Store user session after verification
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Set the token in a secure HTTP-only cookie
+    res.cookie('token', token, { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', // Ensure cookies are only sent over HTTPS in production
+      sameSite: 'strict' // Prevent CSRF attacks
+    });
+
+    // Set session data
     req.session.user = {
       id: user._id,
       name: user.name,
@@ -95,10 +108,21 @@ app.post("/login", async (req, res) => {
       role: user.role,
     };
 
-    return res.json({ message: "Success", role: user.role });
+    // Send a success response with the token included in the JSON body
+    return res.status(200).json({
+      message: "Success",
+      role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+      token: token // Include the token in the response body
+    });
+
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "An unexpected error occurred. Please try again later." });
   }
 });
 // Feedback functionality
@@ -130,12 +154,9 @@ app.get("/feedback", async (req, res) => {
   }
 });
 
-app.get('/user', (req, res) => {
-  if (req.session.user) {
-    res.json({ user: req.session.user });
-  } else {
-    res.status(401).json("Not Authenticated");
-  }
+app.get('/user', verifyUser, (req, res) => {
+  // If verifyUser passes, the user is authenticated, and req.user should contain the user details
+  res.json({ user: req.user });
 });
 
 app.post("/verify-otp", async (req, res) => {
