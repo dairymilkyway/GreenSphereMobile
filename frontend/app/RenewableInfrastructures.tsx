@@ -22,7 +22,19 @@ const RenewableSlots = ({ infrastructure, roofType, addItem }) => {
     addItem(slot); // Call the addItem function passed from the parent
     setSlotModalVisible(false);
   };
-  
+  const handleRemoveItem = (index) => {
+  const updatedItems = addedItems.filter((_, i) => i !== index);
+  setAddedItems(updatedItems); // Update the state with the filtered items
+
+  // Recalculate the total cost after removing an item
+  const totalCosts = updatedItems.reduce((sum, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const { totalCost } = calculateTotalCost(source, item.quantity);
+    return sum + totalCost;
+  }, 0);
+
+  console.log(`Total Costs after removal: ₱${totalCosts.toFixed(2)}`);
+};
   const explanations = {
     "Single-Family with Gable": {
       "Pico Hydropower": `These structures are typically located in urban or suburban areas where access to flowing water sources is rare. Pico hydropower requires proximity to a river or stream, which is uncommon in residential or commercial zones. Additionally, the infrastructure needed (e.g., penstocks, turbines) is not feasible for most single-family homes or multi-unit buildings. 
@@ -91,6 +103,7 @@ const RenewableSlots = ({ infrastructure, roofType, addItem }) => {
       <a href="https://build-construct.com/building/solar-roof-tiles/">Learn more</a>`,
     },
   };
+
   const renewableEnergyRankings = {
     "Single-Family with Gable": [
       { type: 'Solar Energy', name: 'Solar Roof Tiles', image: require('../assets/images/SolarRoofTiles.png') },
@@ -318,7 +331,6 @@ export default function RenewableInfrastructures() {
   // State for modal visibility to show added items
   const [addedItemsModalVisible, setAddedItemsModalVisible] = useState(false);
 
-
  // Data structure for infrastructures
  const infrastructures = [
    {
@@ -394,7 +406,13 @@ export default function RenewableInfrastructures() {
  const toggleExpansion = (index) => {
    setExpandedCard(expandedCard === index ? null : index);
  };
-
+ const handleRemoveItem = (index) => {
+  const updatedItems = addedItems.filter((_, i) => i !== index);
+  setAddedItems(updatedItems); // Update the state to trigger a re-render
+};
+ const handleRemoveItemFromParent = (updatedItems) => {
+  setAddedItems(updatedItems); // Update the state with the filtered items
+};
  // Open modal with item details
  const openModal = (item) => {
    setSelectedItem(item);
@@ -416,6 +434,8 @@ export default function RenewableInfrastructures() {
 
   setIsButtonEnabled(true); // Enable the button when an item is added
 };
+
+
  return (
    <ScrollView contentContainerStyle={styles.container}>
     
@@ -485,6 +505,7 @@ export default function RenewableInfrastructures() {
         visible={addedItemsModalVisible}
         onClose={() => setAddedItemsModalVisible(false)}
         addedItems={addedItems}
+        onRemoveItem={handleRemoveItem} // Pass the removal handler
       />
      {/* Cards Section */}
      {infrastructures.map((item, index) => (

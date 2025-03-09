@@ -15,60 +15,153 @@ const screenHeight = Dimensions.get('window').height;
 const COLORS = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1'];
 
 
-const AddedItemsModal = ({ visible, onClose, addedItems }) => {
+const AddedItemsModal = ({ visible, onClose, addedItems, onRemoveItem  }) => {
   const costBenefitRef = useRef(null);
   const savingsRef = useRef(null);
   const carbonRef = useRef(null);
+  const carbonRef1 = useRef(null);
   const energyUsageRef = useRef(null);
   const totalCostRef = useRef(null);
   const costBreakdownRef = useRef(null);
   const [isSaveSuccessful, setIsSaveSuccessful] = React.useState(false);
+
+  const calculateCumulativePaybackPeriod = (items) => {
+    let totalCost = 0;
+    let totalAnnualSavings = 0;
+  
+    items.forEach(item => {
+      const source = item.name.replace(/\s+/g, '').toLowerCase();
+      const { totalCost: itemCost, annualSavings: itemSavings } = calculateTotalCost(source, item.quantity);
+      totalCost += itemCost;
+      totalAnnualSavings += itemSavings;
+    });
+  
+    return totalAnnualSavings > 0 ? totalCost / totalAnnualSavings : null; // Avoid division by zero
+  };
   // Prepare data for charts
-  const totalProductCost = addedItems.reduce(
-    (sum, item) => {
-      const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
-      const prices = PRICES[source];
-      return sum + (prices ? prices.productCost * item.quantity : 0);
-    },
-    0
-  );
+  const totalProductCost = addedItems.reduce((sum, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const prices = PRICES[source];
+    return sum + (prices ? prices.productCost * item.quantity : 0);
+  }, 0);
 
-  const totalInstallationCost = addedItems.reduce(
-    (sum, item) => {
-      const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
-      const prices = PRICES[source];
-      return sum + (prices ? prices.installation * item.quantity : 0);
-    },
-    0
-  );
+  const totalInstallationCost = addedItems.reduce((sum, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const prices = PRICES[source];
+    return sum + (prices ? prices.installation * item.quantity : 0);
+  }, 0);
 
-  const totalMaintenanceCost = addedItems.reduce(
-    (sum, item) => {
-      const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
-      const prices = PRICES[source];
-      return sum + (prices ? prices.maintenance * item.quantity : 0);
-    },
-    0
-  );
+  const totalMaintenanceCost = addedItems.reduce((sum, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const prices = PRICES[source];
+    return sum + (prices ? prices.maintenance * item.quantity : 0);
+  }, 0);
 
-  const totalCarbonEmissions = addedItems.reduce(
-    (sum, item) => {
-      const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
-      const prices = PRICES[source];
-      return sum + (prices ? prices.carbonEmissions * item.quantity : 0);
-    },
-    0
-  );
+  const totalCarbonEmissions = addedItems.reduce((sum, item) => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const prices = PRICES[source];
+    return sum + (prices ? prices.carbonEmissions * item.quantity : 0);
+  }, 0);
+
+  const handleRemoveItem = (index) => {
+    const updatedItems = addedItems.filter((_, i) => i !== index);
+    onRemoveItem(updatedItems); // Call the parent's callback to update the state
+  };
 
   const carbonPaybackPeriod = (totalCarbonEmissions / 1000).toFixed(2); // Example calculation
+
   const energyUsageByType = addedItems.reduce((acc, item) => {
-    const source = item.name.replace(/\s+/g, '').toLowerCase(); // Normalize the source key
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
     const prices = PRICES[source];
     if (prices) {
       acc[source] = (acc[source] || 0) + prices.energyProduction * item.quantity;
     }
     return acc;
   }, {});
+
+  const pieChartData = [
+    { name: 'Product Cost', value: totalProductCost, color: COLORS[0], legendFontColor: '#000', legendFontSize: 10 },
+    { name: 'Installation Cost', value: totalInstallationCost, color: COLORS[1], legendFontColor: '#000', legendFontSize: 10 },
+    { name: 'Maintenance Cost', value: totalMaintenanceCost, color: COLORS[2], legendFontColor: '#000', legendFontSize: 10 },
+  ];
+
+  const barChartData = {
+    labels: addedItems.map(item => item.name),
+    datasets: [
+      {
+        data: addedItems.map(item =>
+          calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).totalCost
+        ),
+        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Green for Total Cost
+        strokeWidth: 2,
+      },
+      {
+        data: addedItems.map(item =>
+          calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).annualSavings
+        ),
+        color: (opacity = 1) => `rgba(139, 195, 74, ${opacity})`, // Lighter green for Annual Savings
+        strokeWidth: 2,
+      },
+    ],
+    legend: ['Total Cost', 'Annual Savings'],
+  };
+
+  const lineChartData = addedItems.map(item => ({
+    name: item.name,
+    emissions: calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).totalCarbonEmissions,
+  }));
+
+  const totalCost = totalProductCost + totalInstallationCost + totalMaintenanceCost;
+
+  const carbonByItem = addedItems.map(item => {
+    const source = item.name.replace(/\s+/g, '').toLowerCase();
+    const prices = PRICES[source] || {}; // Fallback to an empty object if PRICES[source] is undefined
+    const emissions = (prices.carbonEmissions || 0) * (item.quantity || 0); // Handle missing values
+    const payback = emissions / 100; // Example calculation
+  
+    return {
+      name: item.name,
+      emissions: emissions,
+      payback: payback,
+    };
+  }) || []; // Fallback to an empty array if mapping fails
+  
+  // Debugging logs
+  console.log('addedItems:', addedItems);
+  console.log('PRICES:', PRICES);
+  console.log('carbonByItem:', carbonByItem);
+  
+  // Calculate total carbon emissions and total payback period using a for loop
+  let totalEmissions = 0;
+  let totalPayback = 0;
+  
+  for (let i = 0; i < carbonByItem.length; i++) {
+    totalEmissions += carbonByItem[i].emissions;
+    totalPayback += carbonByItem[i].payback;
+  }
+  
+  // Data for Total Carbon Emissions Chart (single bar)
+  const emissionsBarChartData = {
+    labels: ['Total Carbon Emissions'], // Single label for the aggregated bar
+    datasets: [
+      {
+        data: [totalEmissions], // Aggregated total emissions
+        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // Red for emissions
+      },
+    ],
+  };
+  
+  // Data for Carbon Payback Period Chart (single bar)
+  const paybackBarChartData = {
+    labels: ['Carbon Payback Period'], // Single label for the aggregated bar
+    datasets: [
+      {
+        data: [totalPayback], // Aggregated total payback period
+        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`, // Blue for payback
+      },
+    ],
+  };
+
   const fetchUserData = async () => { 
     try {
       const token = await AsyncStorage.getItem('token');
@@ -204,71 +297,6 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
       alert("Failed to save data.");
     }
   };
-  const pieChartData = [
-    { name: 'Product Cost', value: totalProductCost, color: COLORS[0], legendFontColor: '#FFFFFF', legendFontSize: 10 },
-    { name: 'Installation Cost', value: totalInstallationCost, color: COLORS[1], legendFontColor: '#FFFFFF', legendFontSize: 10 },
-    { name: 'Maintenance Cost', value: totalMaintenanceCost, color: COLORS[2], legendFontColor: '#FFFFFF', legendFontSize: 10 },
-  ];
-
-  const barChartData = {
-    labels: addedItems.map(item => item.name),
-    datasets: [
-      {
-        data: addedItems.map(item =>
-          calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).totalCost
-        ),
-        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Green for Total Cost
-        strokeWidth: 2,
-      },
-      {
-        data: addedItems.map(item =>
-          calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).annualSavings
-        ),
-        color: (opacity = 1) => `rgba(139, 195, 74, ${opacity})`, // Lighter green for Annual Savings
-        strokeWidth: 2,
-      },
-    ],
-    legend: ['Total Cost', 'Annual Savings'],
-  };
-
-  const lineChartData = addedItems.map(item => ({
-    name: item.name,
-    emissions: calculateTotalCost(item.name.replace(/\s+/g, '').toLowerCase(), item.quantity).totalCarbonEmissions,
-  }));
-
-  const totalCost = totalProductCost + totalInstallationCost + totalMaintenanceCost;
-
-  // Prepare carbon data for each item
-  const carbonByItem = addedItems.map(item => {
-    const source = item.name.replace(/\s+/g, '').toLowerCase();
-    const prices = PRICES[source];
-    const emissions = prices ? prices.carbonEmissions * item.quantity : 0;
-    // Calculate individual payback period (simple example calculation)
-    const payback = emissions / 100; // Example calculation
-    
-    return {
-      name: item.name,
-      emissions: emissions,
-      payback: payback
-    };
-  });
-
-  const carbonBarChartData = {
-    labels: carbonByItem.map(item => item.name),
-    datasets: [
-      {
-        data: carbonByItem.map(item => item.emissions),
-        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // Red for emissions
-        strokeWidth: 2,
-      },
-      {
-        data: carbonByItem.map(item => item.payback),
-        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`, // Blue for payback
-        strokeWidth: 2,
-      }
-    ],
-    legend: ['Emissions (kg CO₂)', 'Payback Period (years)']
-  };
 
   return (
     <Modal transparent visible={visible} animationType="fade">
@@ -305,132 +333,52 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
           
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <ViewShot ref={costBenefitRef} options={{ format: "jpg", quality: 0.9 }}>
-            {/* Cost vs. Benefit Analysis */}
-            <View style={styles.section}>
-              <Text style={styles.chartTitle}>Cost vs. Benefit Analysis</Text>
-              <View style={styles.analysisContainer}>
-                {addedItems.length > 0 ? (
-                  addedItems.map((item, index) => {
-                    const source = item.name.replace(/\s+/g, '').toLowerCase();
-                    const analysisData = calculateTotalCost(source, item.quantity);
-
-                    return (
-                      <View key={index} style={styles.itemContainer}>
-                        <Text style={styles.itemName}>{item.name}</Text>
-                        <Text style={styles.itemDetail}>Total Cost: ₱{analysisData.totalCost.toFixed(2)}</Text>
-                        <Text style={styles.itemDetail}>Annual Savings: ₱{analysisData.annualSavings.toFixed(2)}</Text>
-                        <Text style={styles.itemDetail}>
-                          Payback Period:{' '}
-                          {isNaN(analysisData.paybackPeriod) || analysisData.paybackPeriod === null
-                            ? '0yr'
-                            : `${analysisData.paybackPeriod.toFixed(1)}yr`}
-                        </Text>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.noItemsText}>No items added.</Text>
-                )}
-              </View>
+  {/* Cost vs. Benefit Analysis */}
+  <View style={styles.section}>
+    <Text style={styles.chartTitle}>Cost vs. Benefit Analysis</Text>
+    <View style={styles.analysisContainer}>
+      {addedItems.length > 0 ? (
+        addedItems.map((item, index) => {
+          const source = item.name.replace(/\s+/g, '').toLowerCase();
+          const analysisData = calculateTotalCost(source, item.quantity);
+          return (
+            <View key={index} style={styles.itemContainer}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemDetail}>Total Cost: ₱{analysisData.totalCost.toFixed(2)}</Text>
+              <Text style={styles.itemDetail}>Annual Savings: ₱{analysisData.annualSavings.toFixed(2)}</Text>
+              <Text style={styles.itemDetail}>
+                Payback Period:{' '}
+                {isNaN(analysisData.paybackPeriod) || analysisData.paybackPeriod === null
+                  ? '0yr'
+                  : `${analysisData.paybackPeriod.toFixed(1)}yr`}
+              </Text>
+              {/* Remove Button */}
+              <TouchableOpacity
+                onPress={() => onRemoveItem(index)}
+                style={styles.removeButton}
+              >
+                <Text style={styles.removeButtonText}>Remove</Text>
+              </TouchableOpacity>
             </View>
-            </ViewShot>
+          );
+        })
+      ) : (
+        <Text style={styles.noItemsText}>No items added.</Text>
+      )}
+    </View>
+  </View>
+</ViewShot>
 
             {/* Bar Chart for Cost vs. Savings */}
             <ViewShot ref={savingsRef} options={{ format: "jpg", quality: 0.9 }}>
-            <View style={styles.chartSection}>
-              <Text style={styles.chartTitle}>Cost vs. Savings Comparison</Text>
-              <View style={styles.chartContainer}>
-                <BarChart
-                  data={barChartData}
-                  width={screenWidth * 0.9}
-                  height={250}
-                  yAxisLabel="₱"
-                  chartConfig={{
-                    backgroundColor: '#1A1A40',
-                    backgroundGradientFrom: '#1E1E50',
-                    backgroundGradientTo: '#1A1A40',
-                    decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    barPercentage: 0.7,
-                    propsForLabels: {
-                      fontSize: 12,
-                    },
-                  }}
-                  style={styles.chart}
-                  verticalLabelRotation={45}
-                  showValuesOnTopOfBars={true}
-                />
-              </View>
-            </View>
-            </ViewShot>
-               {/* Carbon Payback Period Analysis with Bar Chart */}
-               <ViewShot ref={carbonRef} options={{ format: "jpg", quality: 0.9 }}>
-               <View style={styles.chartSection}>
-              <Text style={styles.chartTitle}>Carbon Payback Period Analysis</Text>
-              <View style={styles.infoCard}>
-                <Text style={styles.infoText}>Total Carbon Emissions: {totalCarbonEmissions.toFixed(1)} kg CO₂</Text>
-                <Text style={styles.infoText}>Overall Carbon Payback Period: {carbonPaybackPeriod} years</Text>
-              </View>
-              
-              <View style={[styles.chartContainer, {marginTop: 15}]}>
-                <BarChart
-                  data={carbonBarChartData}
-                  width={screenWidth * 0.9}
-                  height={280}
-                  yAxisLabel=""
-                  chartConfig={{
-                    backgroundColor: '#1A1A40',
-                    backgroundGradientFrom: '#1E1E50',
-                    backgroundGradientTo: '#1A1A40',
-                    decimalPlaces: 1,
-                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    barPercentage: 0.7,
-                    propsForLabels: {
-                      fontSize: 12,
-                    },
-                    propsForDots: {
-                      r: "6",
-                      strokeWidth: "2",
-                    },
-                    style: {
-                      borderRadius: 16,
-                    },
-                  }}
-                  style={styles.chart}
-                  verticalLabelRotation={45}
-                  showValuesOnTopOfBars={true}
-                  withInnerLines={true}
-                  fromZero={true}
-                  segments={5}
-                />
-              </View>
-              <View style={styles.legendContainer}>
-                {carbonBarChartData.legend.map((label, index) => (
-                  <View key={index} style={styles.legendItem}>
-                    <View 
-                      style={[
-                        styles.legendColor,
-                        {backgroundColor: index === 0 ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 1)'}
-                      ]} 
-                    />
-                    <Text style={styles.legendText}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            </ViewShot>
-
-{/* Pie Chart for Cost Breakdown */}
-<View style={styles.chartSection}>
-  <ViewShot ref={costBreakdownRef} options={{ format: "jpg", quality: 0.9 }}>
-    <Text style={styles.chartTitle}>Cost Breakdown</Text>
+  <View style={styles.chartSection}>
+    <Text style={styles.chartTitle}>Cost vs. Savings Comparison</Text>
     <View style={styles.chartContainer}>
-      <PieChart
-        data={pieChartData}
+      <BarChart
+        data={barChartData}
         width={screenWidth * 0.9}
-        height={220}
+        height={300}
+        yAxisLabel="₱"
         chartConfig={{
           backgroundColor: '#1A1A40',
           backgroundGradientFrom: '#1E1E50',
@@ -438,57 +386,163 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
           decimalPlaces: 0,
           color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-          style: { borderRadius: 12 },
+          barPercentage: 0.7,
+          propsForLabels: {
+            fontSize: addedItems.length <= 3 ? 12 : 8, // Adjust font size dynamically
+          },
+          propsForVerticalLabels: {
+            fontSize: addedItems.length <= 3 ? 12 : 8, // Adjust font size dynamically
+          },
+        }}
+        style={styles.chart}
+        verticalLabelRotation={0} // Horizontal labels
+        showValuesOnTopOfBars={true}
+        fromZero={true} // Ensure bars start from zero
+      />
+    </View>
+  </View>
+</ViewShot>
+{/* Bar Charts for Carbon Emissions and Payback Period */}
+<ViewShot ref={carbonRef} options={{ format: "jpg", quality: 0.9 }}>
+  <View style={styles.chartSection}>
+    {/* Header Section */}
+    <Text style={styles.chartTitle}>Carbon Payback Period Analysis</Text>
+
+    {/* Total Carbon Emissions Chart */}
+    <View style={[styles.chartContainer, { marginBottom: 20 }]}>
+      <Text style={styles.chartTitle}>Total Carbon Emissions (kg CO₂)</Text>
+      <BarChart
+        data={emissionsBarChartData} // Use emissionsBarChartData here
+        width={screenWidth * 0.45} // Adjusted width for better alignment
+        height={300}
+        yAxisLabel=""
+        chartConfig={{
+          backgroundColor: '#1A1A40',
+          backgroundGradientFrom: '#1E1E50',
+          backgroundGradientTo: '#1A1A40',
+          decimalPlaces: 1,
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          barPercentage: 0.85, // Slightly wider bars for prominence
+          barRadius: 5, // Rounded edges for visual appeal
+          propsForLabels: { fontSize: 12, textAlign: 'center' }, // Larger font size for readability
+        }}
+        style={[styles.chart, { alignSelf: 'center' }]} // Center the chart
+        verticalLabelRotation={0} // Horizontal labels
+        showValuesOnTopOfBars={true}
+        fromZero={true} // Ensure bars start from zero
+      />
+    </View>
+  </View>
+</ViewShot>
+
+{/* Carbon Payback Period Chart */}
+<ViewShot ref={carbonRef1} options={{ format: "jpg", quality: 0.9 }}>
+  <View style={[styles.chartContainer, { marginTop: 20 }]}>
+    <Text style={styles.chartTitle}>Carbon Payback Period (years)</Text>
+    <BarChart
+      data={paybackBarChartData} // Use paybackBarChartData here
+      width={screenWidth * 0.45} // Adjusted width for better alignment
+      height={300}
+      yAxisLabel=""
+      chartConfig={{
+        backgroundColor: '#1A1A40',
+        backgroundGradientFrom: '#1E1E50',
+        backgroundGradientTo: '#1A1A40',
+        decimalPlaces: 1,
+        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        barPercentage: 0.85, // Slightly wider bars for prominence
+        barRadius: 5, // Rounded edges for visual appeal
+        propsForLabels: { fontSize: 12, textAlign: 'center' }, // Larger font size for readability
+      }}
+      style={[styles.chart, { alignSelf: 'center' }]} // Center the chart
+      verticalLabelRotation={0} // Horizontal labels
+      showValuesOnTopOfBars={true}
+      fromZero={true} // Ensure bars start from zero
+    />
+  </View>
+</ViewShot>
+
+            {/* Energy Usage Section */}
+            <ViewShot ref={energyUsageRef} options={{ format: "jpg", quality: 0.9 }}>
+  <View style={styles.chartSection}>
+    <Text style={styles.chartTitle}>Energy Usage by Energy Type</Text>
+    <View style={styles.chartContainer}>
+      {/* Group addedItems by energy type */}
+      {(() => {
+        const energyTypeTotals = addedItems.reduce((acc, item) => {
+          const energyType = item.type; // Assuming 'type' is part of the item object
+          const emissions = calculateTotalCost(
+            item.name.replace(/\s+/g, '').toLowerCase(),
+            item.quantity
+          ).totalCarbonEmissions;
+
+          acc[energyType] = (acc[energyType] || 0) + emissions;
+          return acc;
+        }, {});
+
+        // Convert grouped data into chart-friendly format
+        const labels = Object.keys(energyTypeTotals);
+        const data = Object.values(energyTypeTotals);
+
+        return (
+          <LineChart
+            data={{
+              labels: labels,
+              datasets: [
+                {
+                  data: data,
+                  color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Green for emissions
+                  strokeWidth: 3,
+                },
+              ],
+            }}
+            width={screenWidth * 0.9}
+            height={300}
+            chartConfig={{
+              backgroundColor: '#1A1A40',
+              backgroundGradientFrom: '#1E1E50',
+              backgroundGradientTo: '#1A1A40',
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            }}
+            bezier
+            style={styles.chart}
+            verticalLabelRotation={0} // Horizontal labels
+          />
+        );
+      })()}
+    </View>
+  </View>
+</ViewShot>
+   {/* Pie Chart for Cost Breakdown */}
+<View style={styles.chartSection}>
+  <ViewShot ref={costBreakdownRef} options={{ format: "jpg", quality: 0.9 }}>
+    <Text style={styles.chartTitle}>Cost Breakdown</Text>
+    <View style={[styles.chartContainer, { backgroundColor: '#FFFFFF', padding: 40 }]}>
+      <PieChart
+        data={pieChartData}
+        width={screenWidth * 0.9} // Reduced width to make the pie chart smaller
+        height={250} // Reduced height to make the pie chart smaller
+        chartConfig={{
+          backgroundColor: '#FFFFFF', // White background
+          backgroundGradientFrom: '#FFFFFF', // Gradient starts as white
+          backgroundGradientTo: '#FFFFFF', // Gradient ends as white
+          decimalPlaces: 0, // No decimal places for values
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Black color for chart elements
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Black color for labels
         }}
         accessor="value"
         backgroundColor="transparent"
-        paddingLeft="15"
+        paddingLeft="10"
         absolute
         hasLegend={true}
-        center={[screenWidth * 0.2, 0]}
-        avoidFalseZero={true}
       />
     </View>
   </ViewShot>
 </View>
-
-            {/* Energy Usage Section */}
-            <ViewShot ref={energyUsageRef} options={{ format: "jpg", quality: 0.9 }}>
-            <View style={styles.chartSection}>
-              <Text style={styles.chartTitle}>Energy Usage by Source</Text>
-              <View style={styles.chartContainer}>
-                <LineChart
-                  data={{
-                    labels: lineChartData.map(item => item.name),
-                    datasets: [
-                      {
-                        data: lineChartData.map(item => item.emissions),
-                        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
-                        strokeWidth: 3,
-                      },
-                    ],
-                  }}
-                  width={screenWidth * 0.9}
-                  height={250}
-                  chartConfig={{
-                    backgroundColor: '#1A1A40',
-                    backgroundGradientFrom: '#1E1E50',
-                    backgroundGradientTo: '#1A1A40',
-                    decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                    style: { borderRadius: 12 },
-                    propsForLabels: {
-                      fontSize: 12,
-                    },
-                  }}
-                  bezier
-                  style={styles.chart}
-                />
-              </View>
-            </View>
-</ViewShot>
-        
             {/* Total Costs Section */}
             <ViewShot ref={totalCostRef} options={{ format: "jpg", quality: 0.9 }}>
             <View style={styles.infoSection}>
@@ -533,6 +587,7 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
               costBenefitRef,
               savingsRef,
               carbonRef,
+              carbonRef1,
               energyUsageRef,
               totalCostRef,
               costBreakdownRef,
@@ -568,6 +623,16 @@ const AddedItemsModal = ({ visible, onClose, addedItems }) => {
 // Styles
 const styles = StyleSheet.create({
   modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 0,
+  },
+  modalContainer: {
+    width: '98%', // Made wider
+    maxHeight: '95%',
+    backgroundColor: '#1A1A40',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -820,6 +885,19 @@ const styles = StyleSheet.create({
   successButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  removeButton: {
+    backgroundColor: '#FF4D4D', // Red background
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  removeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });
