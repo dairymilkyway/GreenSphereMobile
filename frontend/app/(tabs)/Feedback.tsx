@@ -5,6 +5,7 @@ import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
 import StarRating from 'react-native-star-rating-widget'; // Import StarRating
 import { Dropdown } from 'react-native-element-dropdown'; // Import Dropdown
+import config from '../config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
@@ -17,7 +18,6 @@ export default function Feedback() {
   const [currentPage, setCurrentPage] = useState(1); // Track the current page
   const pageSize = 2; // Number of feedback items per page
   const [loading, setLoading] = useState(false);
-
   // Dropdown state
   const [selectedStar, setSelectedStar] = useState(null); // Selected star rating for filtering
   const starOptions = [
@@ -29,13 +29,33 @@ export default function Feedback() {
     { label: '⭐ 5 Stars', value: 5 },
   ];
 
+  // Function to attempt API requests with fallback IPs
+  const attemptRequestWithFallback = async (endpoint, requestData = {}, method = 'POST') => {
+    for (const ip of config.ipList) {
+      const apiUrl = `http://${ip}/${endpoint}`;
+      try {
+        console.log(`Attempting request with IP: ${ip}`);
+        const response = await axios({
+          method,
+          url: apiUrl,
+          data: requestData,
+          timeout: 500, // Timeout after 0.5 seconds
+        });
+
+        if (response.status >= 200 && response.status < 300) {
+          return response; // Return the successful response
+        }
+      } catch (error) {
+        console.warn(`IP ${ip} failed: ${error.message || error}`);
+      }
+    }
+    throw new Error('No reachable backend server found');
+  };
+
   // Function to submit feedback
   const handleFeedbackSubmit = async () => {
     try {
-      // const apiUrl = 'http://192.168.48.225:8082/feedback'; // Replace with your backend URL
-      // const apiUrl = 'http://192.168.0.251:8082/feedback'; // Replace with your backend URL
-      const apiUrl = 'http://172.20.10.2:8082/feedback'; // Replace with your backend URL
-      const result = await axios.post(apiUrl, { name, rating, comment });
+      const result = await attemptRequestWithFallback('feedback', { name, rating, comment });
       if (result.status === 201) {
         alert('Feedback submitted successfully');
         setName('');
@@ -53,9 +73,7 @@ export default function Feedback() {
   const fetchFeedback = async () => {
     setLoading(true);
     try {
-      // const apiUrl = 'http://192.168.48.225:8082/feedback'; // Backend should return all feedback
-      const apiUrl = 'http://192.168.0.251:8082/feedback'; // Replace with your backend URL
-      const response = await axios.get(apiUrl);
+      const response = await attemptRequestWithFallback('feedback', null, 'GET'); // Use fallback logic
       setAllFeedbacks(response.data); // Store all feedback
       setFilteredFeedbacks(response.data); // Initialize filtered feedback with all feedback
     } catch (err) {
@@ -141,7 +159,6 @@ export default function Feedback() {
         </TouchableOpacity>
         {/* Display fetched feedback */}
         <ThemedText type="title" style={styles.feedbackTitle}>Feedback List</ThemedText>
-
         {/* Single-Select Dropdown for Star Filtering */}
         <View style={styles.dropdownContainer}>
           <Dropdown
@@ -171,7 +188,6 @@ export default function Feedback() {
             )}
           />
         </View>
-
         {/* Page Selection Controls (Moved to Top) */}
         <View style={styles.pageSelectionContainer}>
           {pageNumbers.map((pageNumber) => (
@@ -221,6 +237,7 @@ export default function Feedback() {
   );
 }
 
+// Styles remain unchanged...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
