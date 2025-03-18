@@ -170,7 +170,7 @@ const AddedItemsModal = ({ visible, onClose, addedItems, onRemoveItem  }) => {
         return null;
       }
   
-      const response = await fetch('http://192.168.0.251:8082/user', {
+      const response = await fetch('http://172.20.10.3:8082/user', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -198,7 +198,7 @@ const AddedItemsModal = ({ visible, onClose, addedItems, onRemoveItem  }) => {
     
     try {
       // Fetch logged-in user ID from the backend
-      const userResponse = await fetch("http://192.168.0.251:8082/user", {
+      const userResponse = await fetch("http://172.20.10.3:8082/user", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -245,43 +245,47 @@ const AddedItemsModal = ({ visible, onClose, addedItems, onRemoveItem  }) => {
         CarbonPaybackPeriod: parseFloat(carbonPaybackPeriod),
         TotalCarbonEmission: parseFloat(totalCarbonEmissions),
       };
-  
+      
       // Filter out zero-emission energy sources
-      const energyUsageData = Object.entries(energyUsageByType)
-        .filter(([type, emissions]) => emissions > 0)
-        .map(([type, emissions]) => ({
+      const energyUsageData = addedItems
+        .filter(item => {
+          const source = item.name.replace(/\s+/g, '').toLowerCase();
+          const prices = PRICES[source];
+          return prices && prices.carbonEmissions > 0;
+        })
+        .map(item => ({
           user_id,
-          Type: type,
-          Emissions: parseFloat(emissions),
+          Type: item.type, // Use the type of the renewable energy source
+          Emissions: parseFloat(PRICES[item.name.replace(/\s+/g, '').toLowerCase()].carbonEmissions * item.quantity),
         }));
-  
+      
       console.log("📩 Sending Cost Analysis:", costAnalysisData);
       console.log("📩 Sending Carbon Analysis:", carbonAnalysisData);
       console.log("📩 Sending Filtered Energy Usage:", energyUsageData);
-  
+      
       // Send requests
-      const costResponse = await fetch("http://192.168.0.251:8082/api/cost-analysis", {
+      const costResponse = await fetch("http://172.20.10.3:8082/api/cost-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(costAnalysisData),
       });
-  
-      const carbonResponse = await fetch("http://192.168.0.251:8082/api/carbon-analysis", {
+      
+      const carbonResponse = await fetch("http://172.20.10.3:8082/api/carbon-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(carbonAnalysisData),
       });
-  
+      
       const costData = await costResponse.json();  // ✅ Read once
       const carbonData = await carbonResponse.json();  // ✅ Read once
-  
+      
       console.log("✅ Cost Analysis Response:", costData);
       console.log("✅ Carbon Analysis Response:", carbonData);
-  
+      
       // Send energy usage requests in parallel
       const energyUsageResponses = await Promise.all(
         energyUsageData.map((entry) =>
-          fetch("http://192.168.0.251:8082/api/energy-usage", {
+          fetch("http://172.20.10.3:8082/api/energy-usage", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(entry),

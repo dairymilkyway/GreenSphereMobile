@@ -5,12 +5,11 @@ import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
 import StarRating from 'react-native-star-rating-widget'; // Import StarRating
 import { Dropdown } from 'react-native-element-dropdown'; // Import Dropdown
-import config from '../config'; // Import the configuration file
+import { ScrollView } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const API_URL = 'http://192.168.0.251:8082'; // Directly set the API endpoint
 
 export default function Feedback() {
-  const [name, setName] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [allFeedbacks, setAllFeedbacks] = useState([]); // Store all feedback
@@ -18,6 +17,7 @@ export default function Feedback() {
   const [currentPage, setCurrentPage] = useState(1); // Track the current page
   const pageSize = 2; // Number of feedback items per page
   const [loading, setLoading] = useState(false);
+
   // Dropdown state
   const [selectedStar, setSelectedStar] = useState(null); // Selected star rating for filtering
   const starOptions = [
@@ -29,36 +29,12 @@ export default function Feedback() {
     { label: '⭐ 5 Stars', value: 5 },
   ];
 
-  // Function to attempt API requests with fallback IPs
-  const attemptRequestWithFallback = async (endpoint, requestData = {}, method = 'POST') => {
-    for (const ip of config.ipList) {
-      const apiUrl = `http://${ip}/${endpoint}`;
-      try {
-        console.log(`Attempting request with IP: ${ip}`);
-        const response = await axios({
-          method,
-          url: apiUrl,
-          data: requestData,
-          timeout: 500, // Timeout after 0.5 seconds
-        });
-
-        if (response.status >= 200 && response.status < 300) {
-          return response; // Return the successful response
-        }
-      } catch (error) {
-        console.warn(`IP ${ip} failed: ${error.message || error}`);
-      }
-    }
-    throw new Error('No reachable backend server found');
-  };
-
   // Function to submit feedback
   const handleFeedbackSubmit = async () => {
     try {
-      const result = await attemptRequestWithFallback('feedback', { name, rating, comment });
-      if (result.status === 201) {
+      const response = await axios.post(`${API_URL}/feedback`, { rating, comment });
+      if (response.status === 201) {
         alert('Feedback submitted successfully');
-        setName('');
         setRating(0);
         setComment('');
         fetchFeedback(); // Refresh feedback list after submission
@@ -73,7 +49,7 @@ export default function Feedback() {
   const fetchFeedback = async () => {
     setLoading(true);
     try {
-      const response = await attemptRequestWithFallback('feedback', null, 'GET'); // Use fallback logic
+      const response = await axios.get(`${API_URL}/feedback`);
       setAllFeedbacks(response.data); // Store all feedback
       setFilteredFeedbacks(response.data); // Initialize filtered feedback with all feedback
     } catch (err) {
@@ -92,10 +68,8 @@ export default function Feedback() {
   // Handle star filter selection
   useEffect(() => {
     if (selectedStar === null) {
-      // Reset filter to show all feedback
       setFilteredFeedbacks(allFeedbacks);
     } else {
-      // Filter feedback by selected star rating
       const filtered = allFeedbacks.filter((item) => item.rating === selectedStar);
       setFilteredFeedbacks(filtered);
     }
@@ -123,28 +97,22 @@ export default function Feedback() {
   return (
     <LinearGradient colors={['#05002E', '#191540']} style={styles.container}>
       <View style={styles.formContainer}>
-        <ThemedText type="title" style={styles.title}>Submit Feedback</ThemedText>
-        {/* Input fields */}
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          placeholderTextColor="#CCCCCC"
-          value={name}
-          onChangeText={setName}
-        />
+        <ThemedText type="title" style={styles.title}>Rate Us</ThemedText>
+
         {/* Star Rating Input */}
         <View style={styles.ratingContainer}>
-          <ThemedText style={styles.ratingLabel}>Rate Us:</ThemedText>
           <StarRating
             rating={rating}
             onChange={setRating}
-            starSize={24} // Smaller star size for compact design
-            color="#FFD700" // Gold color for filled stars
-            emptyColor="#CCCCCC" // Gray color for empty stars
-            enableHalfStar={false} // Disable half-star ratings
-            starStyle={{ marginHorizontal: 2 }} // Tight spacing between stars
+            starSize={60} // Bigger stars
+            color="#FFD700"
+            emptyColor="#CCCCCC"
+            enableHalfStar={false}
+            starStyle={{ marginHorizontal: 5 }}
           />
         </View>
+
+        {/* Comment Input */}
         <TextInput
           style={styles.input}
           placeholder="Comment"
@@ -153,13 +121,15 @@ export default function Feedback() {
           onChangeText={setComment}
           multiline
         />
-        {/* Submit button */}
+
+        {/* Submit Button */}
         <TouchableOpacity style={styles.submitButton} onPress={handleFeedbackSubmit}>
           <ThemedText style={styles.buttonText}>Submit</ThemedText>
         </TouchableOpacity>
-        {/* Display fetched feedback */}
+
         <ThemedText type="title" style={styles.feedbackTitle}>Feedback List</ThemedText>
-        {/* Single-Select Dropdown for Star Filtering */}
+
+        {/* Dropdown for Star Filtering */}
         <View style={styles.dropdownContainer}>
           <Dropdown
             style={styles.dropdown}
@@ -172,39 +142,33 @@ export default function Feedback() {
             valueField="value"
             placeholder="Filter by Stars"
             value={selectedStar}
-            onChange={(item) => {
-              setSelectedStar(item.value); // Update selected star
-            }}
-            renderLeftIcon={() => (
-              <StarRating
-                rating={selectedStar || 0}
-                onChange={() => {}}
-                starSize={16} // Compact star size for dropdown
-                color="#FFD700"
-                emptyColor="#CCCCCC"
-                enableHalfStar={false}
-                starStyle={{ marginHorizontal: 2 }}
-              />
-            )}
+            onChange={(item) => setSelectedStar(item.value)}
           />
         </View>
-        {/* Page Selection Controls (Moved to Top) */}
+
+        {/* Pagination Control */}
         <View style={styles.pageSelectionContainer}>
-          {pageNumbers.map((pageNumber) => (
-            <TouchableOpacity
-              key={pageNumber}
-              style={[
-                styles.pageNumberButton,
-                pageNumber === currentPage && styles.activePageNumberButton,
-              ]}
-              onPress={() => handlePageChange(pageNumber)}
-            >
-              <ThemedText style={styles.pageNumberText}>
-                {pageNumber}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.paginationContentContainer}
+          >
+            {pageNumbers.map((pageNumber) => (
+              <TouchableOpacity
+                key={pageNumber}
+                style={[
+                  styles.pageNumberButton,
+                  pageNumber === currentPage && styles.activePageNumberButton,
+                ]}
+                onPress={() => handlePageChange(pageNumber)}
+              >
+                <ThemedText style={styles.pageNumberText}>{pageNumber}</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
+
+        {/* Feedback List */}
         {loading ? (
           <ActivityIndicator size="large" color="#3333FF" />
         ) : (
@@ -213,20 +177,19 @@ export default function Feedback() {
             keyExtractor={(item) => item._id.toString()}
             renderItem={({ item }) => (
               <View style={styles.feedbackItem}>
-                {/* User Name and Star Rating */}
                 <View style={styles.feedbackHeader}>
+                  {/* Display Name */}
                   <ThemedText style={styles.feedbackName}>{item.name}</ThemedText>
                   <StarRating
                     rating={item.rating}
-                    onChange={() => {}} // Make it readonly by providing an empty function
-                    starSize={16} // Compact star size
-                    color="#FFD700" // Gold color for filled stars
-                    emptyColor="#CCCCCC" // Gray color for empty stars
-                    enableHalfStar={false} // Disable half-star ratings
-                    starStyle={{ marginHorizontal: 2 }} // Tight spacing between stars
+                    onChange={() => {}}
+                    starSize={20}
+                    color="#FFD700"
+                    emptyColor="#CCCCCC"
+                    enableHalfStar={false}
+                    starStyle={{ marginHorizontal: 2 }}
                   />
                 </View>
-                {/* Comment */}
                 <ThemedText style={styles.feedbackComment}>"{item.comment}"</ThemedText>
               </View>
             )}
@@ -237,7 +200,7 @@ export default function Feedback() {
   );
 }
 
-// Styles remain unchanged...
+// Updated Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -270,15 +233,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   ratingContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
     width: '100%',
-  },
-  ratingLabel: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginRight: 10,
   },
   submitButton: {
     width: '100%',
@@ -338,7 +295,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activePageNumberButton: {
-    backgroundColor: '#FFD700', // Highlight the active page
+    backgroundColor: '#FFD700', // Highlight active page
   },
   pageNumberText: {
     color: '#FFFFFF',
@@ -351,7 +308,7 @@ const styles = StyleSheet.create({
   dropdown: {
     height: 45,
     backgroundColor: '#3333FF',
-    borderRadius: 25, // Rounded corners for Shopee-like design
+    borderRadius: 25,
     paddingHorizontal: 12,
   },
   placeholderStyle: {

@@ -7,12 +7,12 @@ import {
   Image,
   Modal,
   ScrollView,
-  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Corrected import
 import { useRouter } from 'expo-router'; // For navigation
-import { Circle, Svg } from 'react-native-svg'; // Corrected import
 import Header from './header'; // Corrected import
+import { calculateTotalCost, PRICES } from './utils'; // Import utility functions
+
 const customFont = {
   fontFamily: 'Poppins-Regular',
 };
@@ -20,6 +20,7 @@ const customFont = {
 // Conversion rate: 1 USD = 57 PHP
 const USD_TO_PHP_RATE = 57;
 
+// Renewable Energy Data
 const renewableEnergyData = [
   {
     type: "Solar Energy",
@@ -27,10 +28,6 @@ const renewableEnergyData = [
     image: require("../assets/images/SolarRoofTiles.png"),
     details:
       "Harness the power of the sun with solar roof tiles. These innovative tiles blend seamlessly into your roof, converting sunlight into clean energy while maintaining the aesthetic appeal of your home.",
-    efficiency: 85, // Efficiency percentage
-    costSavingsUSD: 1200, // Annual cost savings in USD
-    environmentalImpact: "Reduces 5 tons of CO2/year", // Environmental impact
-    energyOutput: "8,000 kWh/year", // Annual energy output
   },
   {
     type: "Solar Energy",
@@ -38,10 +35,6 @@ const renewableEnergyData = [
     image: require("../assets/images/SolarPanel.png"),
     details:
       "Maximize your energy efficiency with solar panels. Designed for optimal sunlight exposure, these panels generate electricity to power your home sustainably.",
-    efficiency: 90, // Efficiency percentage
-    costSavingsUSD: 1500, // Annual cost savings in USD
-    environmentalImpact: "Reduces 6 tons of CO2/year", // Environmental impact
-    energyOutput: "10,000 kWh/year", // Annual energy output
   },
   {
     type: "Solar Energy",
@@ -49,10 +42,6 @@ const renewableEnergyData = [
     image: require("../assets/images/SolarWaterHeating.png"),
     details:
       "Reduce your reliance on conventional heating systems with solar water heating. This eco-friendly solution uses solar collectors to provide hot water for your household needs.",
-    efficiency: 75, // Efficiency percentage
-    costSavingsUSD: 800, // Annual cost savings in USD
-    environmentalImpact: "Reduces 3 tons of CO2/year", // Environmental impact
-    energyOutput: "5,000 kWh/year", // Annual energy output
   },
   {
     type: "Geothermal Energy",
@@ -60,10 +49,6 @@ const renewableEnergyData = [
     image: require("../assets/images/HeatPump.png"),
     details:
       "Tap into the earth's natural energy with geothermal heat pumps. These systems use stable underground temperatures to efficiently heat and cool your home year-round.",
-    efficiency: 80, // Efficiency percentage
-    costSavingsUSD: 1000, // Annual cost savings in USD
-    environmentalImpact: "Reduces 4 tons of CO2/year", // Environmental impact
-    energyOutput: "7,000 kWh/year", // Annual energy output
   },
   {
     type: "Wind Energy",
@@ -71,10 +56,6 @@ const renewableEnergyData = [
     image: require("../assets/images/SmallWindTurbine.png"),
     details:
       "Generate your own electricity with small wind turbines. Perfect for properties with sufficient wind flow, these turbines provide an off-grid energy solution.",
-    efficiency: 70, // Efficiency percentage
-    costSavingsUSD: 900, // Annual cost savings in USD
-    environmentalImpact: "Reduces 3.5 tons of CO2/year", // Environmental impact
-    energyOutput: "6,000 kWh/year", // Annual energy output
   },
   {
     type: "Wind Energy",
@@ -82,10 +63,6 @@ const renewableEnergyData = [
     image: require("../assets/images/VerticalAxisWindTurbine.png"),
     details:
       "Compact and versatile, vertical axis wind turbines are ideal for urban or variable-wind environments. They generate sustainable energy without requiring large open spaces.",
-    efficiency: 65, // Efficiency percentage
-    costSavingsUSD: 700, // Annual cost savings in USD
-    environmentalImpact: "Reduces 3 tons of CO2/year", // Environmental impact
-    energyOutput: "4,500 kWh/year", // Annual energy output
   },
   {
     type: "HydroPower Energy",
@@ -93,10 +70,6 @@ const renewableEnergyData = [
     image: require("../assets/images/MicroHydroPowerSystem.png"),
     details:
       "Turn flowing water into renewable energy with micro hydropower systems. These systems are perfect for homes near streams or rivers, providing consistent and eco-friendly electricity.",
-    efficiency: 88, // Efficiency percentage
-    costSavingsUSD: 1300, // Annual cost savings in USD
-    environmentalImpact: "Reduces 5.5 tons of CO2/year", // Environmental impact
-    energyOutput: "9,000 kWh/year", // Annual energy output
   },
   {
     type: "HydroPower Energy",
@@ -104,10 +77,6 @@ const renewableEnergyData = [
     image: require("../assets/images/PicoHydroPower.png"),
     details:
       "Ideal for off-grid homes, pico hydropower systems generate sustainable energy from low-flow water sources. Minimal infrastructure modifications make them an accessible choice.",
-    efficiency: 82, // Efficiency percentage
-    costSavingsUSD: 950, // Annual cost savings in USD
-    environmentalImpact: "Reduces 4.5 tons of CO2/year", // Environmental impact
-    energyOutput: "6,500 kWh/year", // Annual energy output
   },
   {
     type: "Urban Farming",
@@ -115,31 +84,38 @@ const renewableEnergyData = [
     image: require("../assets/images/VerticalFarming.png"),
     details:
       "Grow fresh produce in limited spaces with vertical farming. This innovative approach enhances food sustainability and self-sufficiency, utilizing walls or greenhouses to maximize yield.",
-    efficiency: 95, // Efficiency percentage
-    costSavingsUSD: 500, // Annual cost savings in USD
-    environmentalImpact: "Reduces 2 tons of CO2/year", // Environmental impact
-    energyOutput: "N/A", // Not applicable for farming
   },
 ];
 
 export default function RenewableModels() {
   const router = useRouter(); // For navigation
   const [selectedItem, setSelectedItem] = useState(null);
-
   const closeModal = () => setSelectedItem(null);
+
+  // Add metrics to renewable energy data
+  const renewableEnergyDataWithMetrics = renewableEnergyData.map((item) => {
+    const normalizedSource = item.name.toLowerCase().replace(/\s+/g, '');
+    const quantity = 1; // Assuming one unit of each product is being considered
+    const metrics = calculateTotalCost(normalizedSource, quantity);
+
+    return {
+      ...item,
+      totalCost: metrics.totalCost,
+      annualSavings: metrics.annualSavings,
+      paybackPeriod: metrics.paybackPeriod,
+      totalCarbonEmissions: metrics.totalCarbonEmissions,
+    };
+  });
 
   return (
     <View style={styles.container}>
       <Header />
-
-
       {/* Title */}
       <Text style={styles.title}>Renewable Energy Solutions</Text>
-
       {/* Scrollable Cards */}
       <ScrollView style={styles.scrollView}>
         <View style={styles.cardContainer}>
-          {renewableEnergyData.map((item, index) => (
+          {renewableEnergyDataWithMetrics.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={[styles.card, styles.cardShadow]}
@@ -153,7 +129,6 @@ export default function RenewableModels() {
           ))}
         </View>
       </ScrollView>
-
       {/* Modal */}
       <Modal transparent visible={!!selectedItem} onRequestClose={closeModal}>
         <View style={styles.modalContainer}>
@@ -166,7 +141,6 @@ export default function RenewableModels() {
               <Icon name="arrow-left" size={24} color="#FFFFFF" />
               <Text style={styles.goBackButtonText}>Go Back</Text>
             </TouchableOpacity>
-
             {/* Modal Content */}
             <View style={styles.modalSplitLayout}>
               <Image source={selectedItem?.image} style={styles.modalImage} />
@@ -176,79 +150,50 @@ export default function RenewableModels() {
                 <Text style={styles.modalDetails}>{selectedItem?.details}</Text>
               </View>
             </View>
-
-            {/* Stats Section */}
+            {/* Stats Section - Improved Design */}
             <View style={styles.statsContainer}>
-              {/* Efficiency */}
-              <View style={styles.statRow}>
-  <Text style={styles.statLabel}>Efficiency</Text>
-  <View style={styles.statValueContainer}>
-    {/* Logic for Energy Icons */}
-    {(() => {
-      const fullIcons = Math.floor(selectedItem?.efficiency / 25); // Number of full icons
-      const remainder = selectedItem?.efficiency % 25; // Remainder to check for half icon
-      const totalIcons = 4; // Maximum number of icons
-      const icons = [];
+              <Text style={styles.statsHeader}>Project Economics & Environmental Impact</Text>
+              
+              {/* Cards Grid Layout */}
+              <View style={styles.statsGrid}>
+                {/* Total Cost Card */}
+                <View style={styles.statCard}>
+                  <Icon name="currency-usd" size={24} color="#4CAF50" style={styles.statIcon} />
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statLabel}>Total Cost</Text>
+                    <Text style={styles.statValue}>{`₱${selectedItem?.totalCost.toLocaleString()}`}</Text>
+                  </View>
+                </View>
 
-      // Add full icons
-      for (let i = 0; i < fullIcons; i++) {
-        icons.push(
-          <Icon key={`full-${i}`} name="battery" size={20} color="#4CAF50" /> // Full energy icon
-        );
-      }
+                {/* Annual Savings Card */}
+                <View style={styles.statCard}>
+                  <Icon name="piggy-bank" size={24} color="#2196F3" style={styles.statIcon} />
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statLabel}>Annual Savings</Text>
+                    <Text style={styles.statValue}>{`₱${selectedItem?.annualSavings.toLocaleString()}/year`}</Text>
+                  </View>
+                </View>
 
-      // Add half icon if remainder > 0
-      if (remainder > 0) {
-        icons.push(
-          <Icon key="half" name="battery-outline" size={20} color="#FFC107" /> // Half energy icon
-        );
-      }
+                {/* Payback Period Card */}
+                <View style={styles.statCard}>
+                  <Icon name="calendar-clock" size={24} color="#FF9800" style={styles.statIcon} />
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statLabel}>Payback Period</Text>
+                    <Text style={styles.statValue}>{`${selectedItem?.paybackPeriod.toFixed(1)} years`}</Text>
+                  </View>
+                </View>
 
-      // Add empty icons for remaining slots
-      const emptyIcons = totalIcons - icons.length;
-      for (let i = 0; i < emptyIcons; i++) {
-        icons.push(
-          <Icon key={`empty-${i}`} name="battery-outline" size={20} color="#D3D3D3" /> // Empty energy icon
-        );
-      }
-
-      return (
-        <View style={{ flexDirection: 'row' }}>
-          {icons}
-        </View>
-      );
-    })()}
-    <Text style={styles.statValue}>{`${selectedItem?.efficiency}%`}</Text>
-  </View>
-</View>
-
-              {/* Cost Savings */}
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Cost Savings</Text>
-                <Text style={styles.statValue}>
-                  {`$${selectedItem?.costSavingsUSD}/year`}
-                  {"\n"}
-                  <Text style={styles.convertedValue}>
-                    {`₱${(selectedItem?.costSavingsUSD * USD_TO_PHP_RATE).toLocaleString()}/year`}
-                  </Text>
-                </Text>
+                {/* Carbon Emissions Card */}
+                <View style={styles.statCard}>
+                  <Icon name="leaf" size={24} color="#8BC34A" style={styles.statIcon} />
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statLabel}>Carbon Reduction</Text>
+                    <Text style={styles.statValue}>{`${selectedItem?.totalCarbonEmissions} kg CO₂`}</Text>
+                  </View>
+                </View>
               </View>
 
-              {/* Environmental Impact */}
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Environmental Impact</Text>
-                <Text style={styles.statValue}>
-                  {selectedItem?.environmentalImpact}
-                </Text>
-              </View>
-
-              {/* Energy Output */}
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Energy Output</Text>
-                <Text style={styles.statValue}>
-                  {selectedItem?.energyOutput}
-                </Text>
-              </View>
+              {/* Compare Button */}
             </View>
           </View>
         </View>
@@ -395,33 +340,57 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: "100%",
   },
-  statRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  statsHeader: {
+    fontSize: 18,
+    color: "#FFFFFF",
+    fontWeight: "bold",
     marginBottom: 10,
+    textAlign: "center",
+    fontFamily: 'Poppins-Bold',
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: "#2A2A50",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statIcon: {
+    marginRight: 10,
+  },
+  statTextContainer: {
+    flex: 1,
   },
   statLabel: {
     fontSize: 14,
     color: "#D3D3D3",
     fontFamily: 'Poppins-Regular',
   },
-  statValueContainer: {
+  statValue: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    fontFamily: 'Poppins-Bold',
+  },
+  compareButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4CAF50",
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 20,
   },
-  statValue: {
+  compareButtonText: {
     fontSize: 14,
     color: "#FFFFFF",
     marginLeft: 8,
     fontFamily: 'Poppins-Bold',
-  },
-  convertedValue: {
-    fontSize: 14,
-    color: "#FFC107", // Highlighted color for PHP
-    fontFamily: 'Poppins-Regular',
-  },
-  energyEmoji: {
-    fontSize: 20,
   },
 });

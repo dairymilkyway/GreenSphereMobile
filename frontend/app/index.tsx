@@ -9,22 +9,23 @@ const { width, height } = Dimensions.get("window");
 const LandingPage = () => {
   // Developer Data
   const developers = [
-    { name: "Gayapa, Jhon Ludwig C.", image: require("@/assets/images/ludwig.jpg") },
-    { name: "Barte, Gwyn S.", image: require("@/assets/images/gwyn.jpg") },
-    { name: "Obreros, Jhun Mark G.", image: require("@/assets/images/jm.jpg") },
-    { name: "Prado, Kristine Mae P.", image: require("@/assets/images/km.jpg") },
+    { name: "Mrs. Pops V. Madriaga", image: require("@/assets/images/mamPops.jpg"), role: "Project Adviser" },
+    { name: "Gayapa, Jhon Ludwig C.", image: require("@/assets/images/ludwig.jpg"), role: "Backend and Frontend" },
+    { name: "Barte, Gwyn S.", image: require("@/assets/images/gwyn.jpg"), role: "Backend" },
+    { name: "Obreros, Jhun Mark G.", image: require("@/assets/images/jm.jpg"), role: "Frontend" },
+    { name: "Prado, Kristine Mae P.", image: require("@/assets/images/km.jpg"), role: "UI/UX Designer" },
   ];
 
   const features = [
-    { 
-      icon: <MaterialIcons name="local-florist" size={24} color="white" />, 
-      title: "Eco-Friendly", 
-      desc: "We prioritize sustainability with green energy solutions tailored to meet the needs of modern living." 
+    {
+      icon: <MaterialIcons name="local-florist" size={24} color="white" />,
+      title: "Eco-Friendly",
+      desc: "We prioritize sustainability with green energy solutions tailored to meet the needs of modern living.",
     },
-    { 
-      icon: <MaterialIcons name="lightbulb" size={24} color="white" />, 
-      title: "User-Friendly", 
-      desc: "Our intuitive and easy-to-use platform makes it simple for anyone to design and apply renewable energy projects." 
+    {
+      icon: <MaterialIcons name="lightbulb" size={24} color="white" />,
+      title: "User-Friendly",
+      desc: "Our intuitive and easy-to-use platform makes it simple for anyone to design and apply renewable energy projects.",
     },
     {
       icon: (
@@ -33,7 +34,7 @@ const LandingPage = () => {
         </View>
       ),
       title: "Reliable",
-      desc: "We provide well-tested, scientifically backed solutions that ensure efficiency and long-term performance."
+      desc: "We provide well-tested, scientifically backed solutions that ensure efficiency and long-term performance.",
     },
   ];
 
@@ -86,7 +87,7 @@ const LandingPage = () => {
       {/* Hero Section */}
       <LinearGradient colors={["#0e0a36", "#1c1a2e"]} style={styles.heroSection}>
         {/* Static Logo Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.hero3D,
             {
@@ -95,7 +96,7 @@ const LandingPage = () => {
             },
           ]}
         >
-          <Animated.Image 
+          <Animated.Image
             source={require('@/assets/images/greenspherelogo.png')}
             style={[
               styles.logo,
@@ -110,7 +111,7 @@ const LandingPage = () => {
           />
         </Animated.View>
         {/* Hero Content Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.heroContent,
             {
@@ -120,11 +121,10 @@ const LandingPage = () => {
           ]}
         >
           <Text style={styles.heroTitle}>Design Your Sustainable Future with GreenSphere</Text>
-          <Text style={styles.heroSubtitle}>A powerful simulator for designing and applying renewable energy solutions. Start building your greener future today!</Text>
-          <TouchableOpacity 
-            style={styles.button} 
-            onPress={() => router.push('/Signup')}
-          >
+          <Text style={styles.heroSubtitle}>
+            A powerful simulator for designing and applying renewable energy solutions. Start building your greener future today!
+          </Text>
+          <TouchableOpacity style={styles.button} onPress={() => router.push('/Signup')}>
             <Text style={styles.buttonText}>Get Started for Free</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -132,11 +132,11 @@ const LandingPage = () => {
 
       {/* Features Section */}
       <View style={styles.featuresSection}>
-        <Text style={styles.sectionTitle}>Why Choose Greensphere?</Text>
+        <Text style={styles.sectionTitle}>Why Choose GreenSphere?</Text>
         <View style={styles.featuresGrid}>
           {features.map((feature, index) => (
-            <Animated.View 
-              key={index} 
+            <Animated.View
+              key={index}
               style={[
                 styles.featureCard,
                 {
@@ -158,8 +158,8 @@ const LandingPage = () => {
         <Text style={styles.sectionTitle}>Developers of the System</Text>
         <View style={styles.developersGrid}>
           {developers.map((dev, index) => (
-            <Animated.View 
-              key={index} 
+            <Animated.View
+              key={index}
               style={[
                 styles.developerCard,
                 {
@@ -170,6 +170,7 @@ const LandingPage = () => {
             >
               <Image source={dev.image} style={styles.developerImage} />
               <Text style={styles.developerName}>{dev.name}</Text>
+              <Text style={styles.developerRole}>{dev.role}</Text>
             </Animated.View>
           ))}
         </View>
@@ -301,6 +302,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
     marginTop: 10,
+    textAlign: "center",
+  },
+  developerRole: {
+    fontSize: 14,
+    color: "#D3D3D3",
+    marginTop: 5,
     textAlign: "center",
   },
   footer: {

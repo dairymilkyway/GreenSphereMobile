@@ -4,7 +4,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { TextInput, TouchableOpacity, Text, View, StyleSheet, Dimensions, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import greensphereLogo from '@/assets/images/greenspherelogo.png';
-import config from './config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
@@ -25,34 +24,44 @@ export default function OtpVerification() {
   };
 
   useEffect(() => {
+    console.log('Component mounted. Focusing on the first OTP input.');
     inputRefs.current[0]?.focus();
   }, []);
 
   useEffect(() => {
     let interval;
     if (resendCooldown > 0) {
+      console.log(`Starting resend cooldown timer: ${resendCooldown}s`);
       interval = setInterval(() => {
         setResendCooldown((prev) => prev - 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      console.log('Clearing resend cooldown timer.');
+      clearInterval(interval);
+    };
   }, [resendCooldown]);
 
   const handleChange = (index, value) => {
+    console.log(`OTP input at index ${index} changed to: ${value}`);
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
     if (value && index < 5) {
+      console.log(`Focusing on next OTP input at index ${index + 1}`);
       inputRefs.current[index + 1]?.focus();
     }
     if (newOtp.join('').length === 6) {
+      console.log('All OTP inputs filled. Initiating OTP verification.');
       handleVerifyOtp(newOtp.join(''));
     }
   };
 
   const handleKeyDown = (index, e) => {
+    console.log(`Key pressed in OTP input at index ${index}: ${e.nativeEvent.key}`);
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      console.log(`Moving focus to previous OTP input at index ${index - 1}`);
       inputRefs.current[index - 1]?.focus();
     }
   };
@@ -60,66 +69,76 @@ export default function OtpVerification() {
   const handleVerifyOtp = async (enteredOtp) => {
     try {
       if (!email) {
+        console.error('Email is missing. Aborting OTP verification.');
         setError('Email is missing. Please restart the process.');
         return;
       }
 
-      // Iterate through the IP list and attempt to verify OTP with each IP
-      for (const ip of config.ipList) {
-        const apiUrl = `http://${ip}/verify-otp`;
-        try {
-          console.log(`Attempting OTP verification with IP: ${ip}`);
-          const response = await axios.post(
-            apiUrl,
-            { email, otp: enteredOtp },
-            { timeout: 500 } // Timeout after 0.5 seconds
-          );
+      console.log('Initiating OTP verification with payload:', { email, otp: enteredOtp });
 
-          if (response.status === 200) {
-            alert('OTP Verified Successfully!');
-            setTimeout(() => router.push('/Login'), 2500);
-            return; // Exit the loop if verification succeeds
-          }
-        } catch (error) {
-          console.warn(`IP ${ip} failed: ${error.message || error}`);
+      const apiUrl = `http://172.20.10.3:8082/verify-otp`; // Use the specific IP and port
+      console.log(`Attempting OTP verification with IP: 172.20.10.3:8082`);
+
+      try {
+        const response = await axios.post(
+          apiUrl,
+          { email, otp: enteredOtp },
+          { timeout: 5000 } // Increased timeout to 5 seconds
+        );
+
+        console.log('OTP verification response:', response.data);
+
+        if (response.status === 200) {
+          console.log('OTP verified successfully. Redirecting to Login screen.');
+          alert('OTP Verified Successfully!');
+          setTimeout(() => router.push('/Login'), 2500);
         }
+      } catch (error) {
+        console.warn(`OTP verification failed:`, error.response ? error.response.data : error.message || error);
+        setError('Unable to connect to the server. Please try again later.');
       }
-
-      // If no IP succeeds, show an error
-      setError('Unable to connect to the server. Please try again later.');
     } catch (err) {
+      console.error('Error during OTP verification:', err.message || err);
       setError(err.response?.data?.message || 'Invalid OTP');
     }
   };
 
   const handleResendOtp = async () => {
     setIsResending(true);
-    try {
-      // Iterate through the IP list and attempt to resend OTP with each IP
-      for (const ip of config.ipList) {
-        const apiUrl = `http://${ip}/resend-otp`;
-        try {
-          console.log(`Attempting OTP resend with IP: ${ip}`);
-          const response = await axios.post(
-            apiUrl,
-            { email },
-            { timeout: 500 } // Timeout after 0.5 seconds
-          );
+    console.log('Initiating OTP resend request.');
 
-          if (response.status === 200) {
-            alert('New OTP sent to your email!');
-            setResendCooldown(30);
-            setIsResending(false);
-            return; // Exit the loop if resend succeeds
-          }
-        } catch (error) {
-          console.warn(`IP ${ip} failed: ${error.message || error}`);
-        }
+    try {
+      if (!email) {
+        console.error('Email is missing. Aborting OTP resend.');
+        Alert.alert('Error', 'Email is missing. Please restart the process.');
+        return;
       }
 
-      // If no IP succeeds, show an error
-      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+      console.log('Sending OTP resend request with payload:', { email });
+
+      const apiUrl = `http://172.20.10.3:8082/resend-otp`; // Use the specific IP and port
+      console.log(`Attempting OTP resend with IP: 172.20.10.3:8082`);
+
+      try {
+        const response = await axios.post(
+          apiUrl,
+          { email },
+          { timeout: 5000 } // Increased timeout to 5 seconds
+        );
+
+        console.log('OTP resend response:', response.data);
+
+        if (response.status === 200) {
+          console.log('New OTP sent successfully.');
+          alert('New OTP sent to your email!');
+          setResendCooldown(30);
+        }
+      } catch (error) {
+        console.warn(`OTP resend failed:`, error.response ? error.response.data : error.message || error);
+        Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+      }
     } catch (error) {
+      console.error('Error during OTP resend:', error.message || error);
       Alert.alert('Error', 'Failed to resend OTP. Please try again.');
     }
     setIsResending(false);

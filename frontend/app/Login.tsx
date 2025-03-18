@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/ThemedText';
-import config from './config'; // Import the configuration file
 
 const { width } = Dimensions.get('window');
 
@@ -17,30 +16,62 @@ export default function Login() {
   const handleLogin = async () => {
     setIsLoading(true); // Show loading indicator
     try {
-      for (const ip of config.ipList) {
-        const apiUrl = `http://${ip}/login`;
-        try {
-          console.log(`Attempting login with IP: ${ip}`);
-          const loginResponse = await axios.post(apiUrl, { email, password }, { timeout: 500 }); // Timeout after 0.5 seconds
-
-          if (loginResponse.data.message === 'Success') {
-            // Store the token
-            await AsyncStorage.setItem('token', loginResponse.data.token);
-            router.replace(loginResponse.data.role === 'admin' ? '/adminhome' : '/Home');
-            return; // Exit the loop if login succeeds
-          } else if (loginResponse.data.redirect === '/verify-otp') {
-            router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
-            return; // Exit the loop if OTP verification is required
-          }
-        } catch (error) {
-          console.warn(`IP ${ip} failed: ${error.message || error}`);
-        }
+      // Validate email format
+      const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!isValidEmail(email)) {
+        Alert.alert('Error', 'Please enter a valid email address.');
+        setIsLoading(false);
+        return;
       }
 
-      // If no IP succeeds, show an error
-      Alert.alert('Error', 'Unable to connect to any backend server. Please try again later.');
+      // Log the payload being sent to the server
+      console.log('Attempting login with payload:', { email, password });
+
+      const apiUrl = `http://192.168.0.251:8082/login`; // Use the specific IP and port
+      console.log(`Attempting login with IP: 172.20.10.3:8082`);
+
+      try {
+        const loginResponse = await axios.post(
+          apiUrl,
+          { email, password },
+          {
+            timeout: 5000, // Increased timeout to 5 seconds
+            headers: { 'Content-Type': 'application/json' }, // Add headers if required
+          }
+        );
+
+        // Log the full response from the server
+        console.log('Login response:', loginResponse.data);
+
+        // Handle successful login
+        if (loginResponse.data.message === 'Success') {
+          await AsyncStorage.setItem('token', loginResponse.data.token);
+          console.log('Token stored successfully:', loginResponse.data.token);
+
+          // Redirect based on user role
+          const redirectTo = loginResponse.data.role === 'admin' ? '/adminhome' : '/Home';
+          console.log(`Redirecting to: ${redirectTo}`);
+          router.replace(redirectTo);
+        } 
+        // Handle OTP verification redirect
+        else if (loginResponse.data.redirect === '/verify-otp') {
+          console.log('Redirecting to OTP verification for email:', email);
+          router.push(`/OtpVerification?email=${encodeURIComponent(email)}`);
+        } 
+        // Handle unexpected response
+        else {
+          console.warn('Unexpected response from server:', loginResponse.data);
+          Alert.alert('Error', 'Unexpected response from the server. Please try again later.');
+        }
+      } catch (error) {
+        // Log detailed error information
+        console.warn('Login failed:', error.response ? error.response.data : error.message || error);
+        Alert.alert('Error', 'Unable to connect to the backend server. Please try again later.');
+      }
     } catch (error) {
+      // Catch any other unexpected errors
       console.error('Login error:', error.message || error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
     } finally {
       setIsLoading(false); // Hide loading indicator
     }
